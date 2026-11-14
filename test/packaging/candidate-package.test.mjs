@@ -7,6 +7,14 @@ import { verifyPackage } from '../../scripts/package/candidate-package.mjs';
 import { verifyNativeNotices } from '../../scripts/build/native-notice-files.mjs';
 
 const project = projectRoot;
+async function payloadFixture() {
+  const parent = join(project, '.local', 'candidate-payload-tests'); await mkdir(parent, { recursive: true });
+  const root = await mkdtemp(join(parent, 'run-'));
+  for (const path of ['lib', 'README.md', 'LICENSE', 'cordis.patch.yml', 'package.json']) await cp(join(project, path), join(root, path), { recursive: true });
+  const pkg = JSON.parse(await readFile(join(root, 'package.json')));
+  return { root, pkg };
+}
+
 test('native notice checks reject stale dependencies, toolchains and obsolete files', async () => {
   const parent = join(project, '.local', 'candidate-payload-tests'); await mkdir(parent, { recursive: true });
   const root = await mkdtemp(join(parent, 'notices-'));
@@ -23,10 +31,7 @@ test('native notice checks reject stale dependencies, toolchains and obsolete fi
 });
 
 test('candidate inspection rejects corrupted or nonportable payloads', async () => {
-  const parent = join(project, '.local', 'candidate-payload-tests'); await mkdir(parent, { recursive: true });
-  const root = await mkdtemp(join(parent, 'run-'));
-  for (const path of ['lib', 'README.md', 'LICENSE', 'cordis.patch.yml', 'package.json']) await cp(join(project, path), join(root, path), { recursive: true });
-  const pkg = JSON.parse(await readFile(join(root, 'package.json')));
+  const { root, pkg } = await payloadFixture();
   const verify = () => verifyPackage(root, pkg, [project.replace(/[\\/]$/, '')]);
   await verify();
   const license = join(root, 'LICENSE'), originalLicense = await readFile(license);
@@ -55,4 +60,30 @@ test('candidate inspection rejects corrupted or nonportable payloads', async () 
   const pathLeak = join(root, 'lib/build-path.txt');
   await writeFile(pathLeak, project); await assert.rejects(verify, /Build path leaked/); await unlink(pathLeak);
   await verify();
+});
+
+test('public package accepts portable README links and rejects private or misdirected publication', async () => {
+  const { root, pkg } = await payloadFixture();
+  const readme = join(root, 'README.md');
+  const publicReadme = '# Public plugin\n\n[Start](#start) | [License](./LICENSE#terms)\n'
+    + '[English](https://github.com/cqxsg/dsh-recollection/blob/main/README_en.md)\n'
+    + '<img src="https://raw.githubusercontent.com/cqxsg/dsh-recollection/main/docs/diagrams/runtime-flow.svg">\n\n## Start\n';
+  // Public documentation need not repeat the package version.
+  assert.ok(!publicReadme.includes(pkg.version));
+  await writeFile(readme, publicReadme);
+  await verifyPackage(root, pkg);
+  for (const reference of ['[Architecture](docs/architecture.md)', '<img src="docs/diagrams/runtime-flow.svg">', "<img src='file:///C:/private/picture.svg'>"]) {
+    await writeFile(readme, publicReadme + reference);
+    await assert.rejects(verifyPackage(root, pkg), /README link outside package/);
+  }
+  await writeFile(readme, publicReadme);
+  for (const [changes, message] of [
+    [{ private: true }, /Private package cannot be published/],
+    [{ publishConfig: { access: 'public', registry: 'https://example.invalid/' } }, /Unexpected publish destination/],
+    [{ publishConfig: { access: 'restricted', registry: 'https://registry.npmjs.org/' } }, /Unexpected publish destination/],
+  ]) {
+    const changed = { ...pkg, ...changes };
+    await writeFile(join(root, 'package.json'), JSON.stringify(changed));
+    await assert.rejects(verifyPackage(root, changed), message);
+  }
 });

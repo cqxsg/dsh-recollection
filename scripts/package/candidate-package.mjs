@@ -21,8 +21,10 @@ export async function verifyPackage(root, expectedPackage, forbiddenPaths = []) 
   const names = await filesUnder(root);
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   assert.deepEqual(pkg, expectedPackage);
-  assert.equal(pkg.private, true);
+  assert.notEqual(pkg.private, true, 'Private package cannot be published');
   assert.equal(pkg.license, 'Apache-2.0');
+  assert.deepEqual(pkg.repository, { type: 'git', url: 'git+https://github.com/cqxsg/dsh-recollection.git' });
+  assert.deepEqual(pkg.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' }, 'Unexpected publish destination');
   assert.deepEqual(pkg.os, ['win32']); assert.deepEqual(pkg.cpu, ['x64']);
   assert.equal(pkg.engines.dsh, '0.2.1-rc.4'); assert.equal(pkg.engines.node, '>=24.14.0');
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) assert.equal(pkg.scripts[hook], undefined);
@@ -64,9 +66,11 @@ export async function verifyPackage(root, expectedPackage, forbiddenPaths = []) 
   assert.equal(worker.flags, undefined);
   await verifyNativeNotices(join(root, 'lib/native/third-party'), { rustVersion: worker.rustVersion, target: worker.target });
   const readme = await readFile(join(root, 'README.md'), 'utf8');
-  for (const [, link] of readme.matchAll(/\]\(([^)]+)\)/g)) {
-    if (!/^https?:/.test(link)) assert.ok(names.includes(link.replace(/^\.\//, '')), `README link outside package: ${link}`);
+  for (const match of readme.matchAll(/\]\(([^)]+)\)|\bsrc=["']([^"']+)["']/g)) {
+    const link = match[1] ?? match[2];
+    if (/^(?:https?:|#)/i.test(link)) continue;
+    const path = decodeURIComponent(link.split('#')[0]).replace(/^\.\//, '');
+    assert.ok(names.includes(path), `README link outside package: ${link}`);
   }
-  assert.match(readme, new RegExp(pkg.version.replaceAll('.', '\\.')));
   return { package: pkg, files: inventory, worker };
 }

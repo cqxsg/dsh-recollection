@@ -1,6 +1,6 @@
 # dsh-recollection
 
-[简体中文](README.md) | English
+[简体中文](https://github.com/cqxsg/dsh-recollection/blob/main/README.md) | English
 
 [Quick start](#quick-start) | [How it works](#how-it-works) | [Evaluation results](#evaluation-results) | [Notes](#notes) | [License](#license)
 
@@ -43,16 +43,16 @@ Context compaction removes some of the original conversation from the model's vi
 ### Runtime flow
 
 <p align="center">
-  <img src="docs/diagrams/en/runtime-flow.svg" alt="Runtime flow" width="500">
+  <img src="https://raw.githubusercontent.com/cqxsg/dsh-recollection/main/docs/diagrams/en/runtime-flow.svg" alt="Runtime flow" width="500">
 </p>
 
 ### Overall architecture
 
 The plugin consists of a Client running in the DSH Web interface and a Host running on the DSH host side. The Client reports the current session and page state; the Host handles history preparation, search and reading, and state and resource management.
 
-![dsh-recollection overall architecture](docs/diagrams/en/overall-architecture.svg)
+![dsh-recollection overall architecture](https://raw.githubusercontent.com/cqxsg/dsh-recollection/main/docs/diagrams/en/overall-architecture.svg)
 
-For module implementations, data flow, and project directories, see the [architecture document](docs/architecture_en.md).
+For module implementations, data flow, and project directories, see the [architecture document](https://github.com/cqxsg/dsh-recollection/blob/main/docs/architecture_en.md).
 
 ## Evaluation results
 

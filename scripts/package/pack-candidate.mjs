@@ -25,7 +25,7 @@ await mkdir(parent, { recursive: true });
 try { await access(destination); throw new Error(`Candidate ${pkg.version} already exists; use a new version. Nothing overwritten.`); }
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true }).trim();
-assert.equal(git('status', '--porcelain', '--untracked-files=all', '--', '.'), '', 'Commit harness changes before freezing a candidate.');
+assert.equal(git('status', '--porcelain', '--untracked-files=all', '--', '.'), '', 'Commit project changes before freezing a candidate.');
 const sourceCommit = git('rev-parse', 'HEAD');
 const paths = git('ls-files', '--', '.').split('\n').filter(path =>
   /^(src\/|native\/|scripts\/|benchmarks\/|experiments\/(?:run|freeze-parameters|report-parameters)\.mjs$|experiments\/terminal-bench\/catalog\.py$|support\/|test\/runners\/|test\/runtime\/children\/|test\/reference\/(?:build-reference|native-client)\.mjs$|package(?:-lock)?\.json$|tsconfig(?:\.client)?\.json$|cordis\.patch\.yml$|README\.md$|LICENSE$)/.test(path));
@@ -60,7 +60,7 @@ assert.equal(git('status', '--porcelain', '--untracked-files=all', '--', '.'), '
 const tarHash = sha256(await readFile(tarball));
 const manifest = {
   schemaVersion: 1, createdAt: new Date().toISOString(), name: pkg.name, version: pkg.version,
-  status: 'C1 packaged and inspected; C2 installation acceptance pending',
+  status: 'Packaged and inspected; installation acceptance pending',
   source: { commit: sourceCommit, harnessWorktreeDiff: '', files: sources },
   tools: { node: process.version, npm: run(process.execPath, [npm, '--version']).trim(), platform: process.platform, arch: process.arch,
     typescript: JSON.parse(await readFile(join(root, 'node_modules/typescript/package.json'))).version,

@@ -1,6 +1,6 @@
 # dsh-recollection
 
-简体中文 | [English](README_en.md)
+简体中文 | [English](https://github.com/cqxsg/dsh-recollection/blob/main/README_en.md)
 
 [快速开始](#快速开始) | [工作原理](#工作原理) | [评测结果](#评测结果) | [注意事项](#注意事项) | [License](#license)
 
@@ -43,16 +43,16 @@ dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases
 ### 运行流程
 
 <p align="center">
-  <img src="docs/diagrams/runtime-flow.svg" alt="运行流程" width="500">
+  <img src="https://raw.githubusercontent.com/cqxsg/dsh-recollection/main/docs/diagrams/runtime-flow.svg" alt="运行流程" width="500">
 </p>
 
 ### 总体架构
 
 插件由运行在 DSH Web 界面的 Client 和运行在 DSH 宿主侧的 Host 组成。Client 上报当前会话与页面状态，Host 负责历史准备、搜索读取及状态和资源管理。
 
-![dsh-recollection 总体架构](docs/diagrams/overall-architecture.svg)
+![dsh-recollection 总体架构](https://raw.githubusercontent.com/cqxsg/dsh-recollection/main/docs/diagrams/overall-architecture.svg)
 
-各模块的实现、数据流转与项目目录说明，详见[架构文档](docs/architecture.md)。
+各模块的实现、数据流转与项目目录说明，详见[架构文档](https://github.com/cqxsg/dsh-recollection/blob/main/docs/architecture.md)。
 
 ## 评测结果
 
