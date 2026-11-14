@@ -3,14 +3,21 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { cp, mkdir, mkdtemp, readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import { verifyPackage } from '../../scripts/package/candidate-package.mjs';
 import { verifyNativeNotices } from '../../scripts/build/native-notice-files.mjs';
+import { createCompatibilityManifest, compatibilityReadme, isDshPeer } from '../../scripts/package/compatibility-package.mjs';
+import { evaluatePluginCompatibility, readPluginMeta } from '@deepseek-ai/dsh-app-boot';
+
+// Exercise the same semver dependency used by the installed DSH baseline.
+const { satisfies } = createRequire(import.meta.resolve('@deepseek-ai/dsh-app-boot'))('semver');
 
 const project = projectRoot;
 async function payloadFixture() {
   const parent = join(project, '.local', 'candidate-payload-tests'); await mkdir(parent, { recursive: true });
   const root = await mkdtemp(join(parent, 'run-'));
-  for (const path of ['lib', 'README.md', 'LICENSE', 'cordis.patch.yml', 'package.json']) await cp(join(project, path), join(root, path), { recursive: true });
+  for (const path of ['lib', 'locale', 'README.md', 'LICENSE', 'cordis.patch.yml', 'package.json']) await cp(join(project, path), join(root, path), { recursive: true });
   const pkg = JSON.parse(await readFile(join(root, 'package.json')));
   return { root, pkg };
 }
@@ -86,4 +93,99 @@ test('public package accepts portable README links and rejects private or misdir
     await writeFile(join(root, 'package.json'), JSON.stringify(changed));
     await assert.rejects(verifyPackage(root, changed), message);
   }
+});
+
+test('supported DSH releases pass engines and peer fallback while excluded versions are rejected', async () => {
+  const pkg = JSON.parse(await readFile(join(project, 'package.json')));
+  const supported = ['0.2.1-rc.4', '0.2.1-rc.5', '0.2.2-alpha.3', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3'];
+  const rejected = ['0.2.1-rc.3', '0.2.1-rc.6', '0.2.1', '0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-rc.4', '0.2.2', '0.3.0-alpha.1', '1.0.0'];
+  for (const [expected, versions] of [[true, supported], [false, rejected]]) {
+    for (const version of versions) {
+      for (const includePrerelease of [false, true]) {
+        assert.equal(satisfies(version, pkg.engines.dsh, { includePrerelease }), expected, `${version} (prereleases=${includePrerelease})`);
+      }
+      for (const manifest of [pkg, { ...pkg, engines: { node: pkg.engines.node } }]) {
+        assert.equal(evaluatePluginCompatibility(manifest, {}, version) === undefined, expected, version);
+      }
+    }
+  }
+  for (const [name, range] of Object.entries(pkg.peerDependencies)) {
+    if (isDshPeer(name)) assert.equal(range, pkg.engines.dsh, name);
+  }
+  for (const [name, versions, outside] of [
+    ['@deepseek-ai/cordis', ['4.0.5', '4.0.6-alpha.2', '4.1.0'], ['4.0.4', '4.0.6-alpha.3', '4.1.1']],
+    ['@deepseek-ai/schemastery', ['3.18.5', '3.18.6-alpha.2', '3.19.0'], ['3.18.4', '3.18.6-alpha.3', '3.19.1']],
+    ['zod', ['4.4.3', '4.6.6', '4.6.7'], ['4.4.2', '4.6.8']],
+  ]) {
+    for (const version of versions) assert.ok(satisfies(version, pkg.peerDependencies[name]), `${name}@${version}`);
+    for (const version of outside) assert.ok(!satisfies(version, pkg.peerDependencies[name]), `${name}@${version}`);
+    assert.ok(satisfies(pkg.devDependencies[name], pkg.peerDependencies[name]), `Build baseline rejected: ${name}`);
+  }
+});
+
+test('packaged metadata is discoverable by DSH and missing or unexported locales fail inspection', async () => {
+  const { root, pkg } = await payloadFixture();
+  const expected = {};
+  for (const language of ['en', 'zh']) expected[language] = JSON.parse(await readFile(join(root, `locale/${language}.json`))).meta.description;
+  assert.notEqual(expected.en, expected.zh);
+  const meta = readPluginMeta(pkg.name, pathToFileURL(join(root, 'package.json')).href);
+  assert.equal(meta?.error, undefined);
+  assert.equal(meta?.title, pkg.name);
+  assert.deepEqual(meta?.description, expected);
+  const verify = expectedPackage => verifyPackage(root, expectedPackage);
+  const chinese = join(root, 'locale/zh.json'), original = await readFile(chinese);
+  await unlink(chinese); await assert.rejects(verify(pkg), /Missing entry/); await writeFile(chinese, original);
+  await writeFile(chinese, '{"meta":{"description":""}}');
+  await assert.rejects(verify(pkg), /Empty localized description/); await writeFile(chinese, original);
+  for (const language of ['en', 'zh']) {
+    const changed = structuredClone(pkg);
+    delete changed.exports[`./locale/${language}.json`];
+    await writeFile(join(root, 'package.json'), JSON.stringify(changed));
+    await assert.rejects(verify(changed), /Locale must be exported/);
+  }
+  await writeFile(join(root, 'package.json'), JSON.stringify(pkg));
+  await verify(pkg);
+});
+
+test('local compatibility manifest passes the native DSH gate without changing the development baseline', async () => {
+  const source = JSON.parse(await readFile(join(project, 'package.json')));
+  const original = structuredClone(source);
+  const pkg = createCompatibilityManifest(source, '0.1.1-compat.1');
+  assert.deepEqual(source, original);
+  assert.deepEqual(pkg.devDependencies, source.devDependencies);
+  assert.equal(evaluatePluginCompatibility(source, {}, '0.2.2-rc.4').exempted, false);
+  for (const version of ['0.0.1', '0.2.1-rc.4', '0.2.2-rc.3', '0.3.0-alpha.1', '1.0.0']) {
+    assert.equal(evaluatePluginCompatibility(pkg, {}, version), undefined, version);
+    // Also check the peer fallback, so engines.dsh cannot hide a remaining DSH peer pin.
+    assert.equal(evaluatePluginCompatibility({ ...pkg, engines: { node: pkg.engines.node } }, {}, version), undefined, version);
+  }
+  for (const [name, range] of Object.entries(source.peerDependencies)) {
+    if (!isDshPeer(name)) assert.equal(pkg.peerDependencies[name], range, name);
+  }
+  for (const version of ['0.1.0', '0.1.1-rc.1', '01.1.1-compat.1', '0.1.1-compat.1/../../other', '']) {
+    assert.throws(() => createCompatibilityManifest(source, version), /Use a local test version/);
+  }
+});
+
+test('compatibility payload requires explicit test inspection and retains artifact integrity checks', async () => {
+  const fixture = await payloadFixture();
+  const pkg = createCompatibilityManifest(fixture.pkg, '0.1.1-compat.1');
+  const manifest = join(fixture.root, 'package.json');
+  await writeFile(manifest, JSON.stringify(pkg));
+  await writeFile(join(fixture.root, 'README.md'), compatibilityReadme(pkg));
+  const verify = expected => verifyPackage(fixture.root, expected, [], { compatibilityTest: true });
+  await verify(pkg);
+  await assert.rejects(verifyPackage(fixture.root, pkg), /Private package cannot be published/);
+  for (const [changed, message] of [
+    [{ ...pkg, private: false }, /must remain private/],
+    [{ ...pkg, engines: { ...pkg.engines, dsh: '0.2.1-rc.4' } }, /must not restrict DSH/],
+    [{ ...pkg, peerDependencies: { ...pkg.peerDependencies, '@deepseek-ai/dsh-agent': '0.2.1-rc.4' } }, /peer must not restrict DSH/],
+  ]) {
+    await writeFile(manifest, JSON.stringify(changed));
+    await assert.rejects(verify(changed), message);
+  }
+  await writeFile(manifest, JSON.stringify(pkg));
+  const worker = join(fixture.root, 'lib/native/worker.exe');
+  await writeFile(worker, Buffer.concat([await readFile(worker), Buffer.from('tampered')]));
+  await assert.rejects(verify(pkg));
 });
