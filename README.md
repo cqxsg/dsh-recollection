@@ -17,22 +17,34 @@
 通过 `dsh` 安装 `dsh-recollection`：
 
 ```sh
+# dsh 桌面版
+dsh plugin --profile desktop add dsh-recollection
+
+# dsh web
 dsh plugin --profile web add dsh-recollection
 ```
 
 更新到最新版本：
 
 ```sh
+# dsh 桌面版
+dsh plugin --profile desktop update dsh-recollection@latest
+
+# dsh web
 dsh plugin --profile web update dsh-recollection@latest
 ```
 
 或从 GitHub Release 安装：
 
 ```sh
+# dsh 桌面版
+dsh plugin --profile desktop add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
+
+# dsh web
 dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
 ```
 
-安装或更新完成后，完整退出并重新启动 DSH 即可使用；Desktop 需从托盘选择“退出”，仅关闭窗口可能仍保留后台进程。插件默认启用，AI 会在需要时自主回想。
+安装或更新完成后，完整退出并重新启动 DSH 即可使用。插件默认启用，AI 会在需要时自主回想。
 
 ## 工作原理
 
@@ -95,10 +107,9 @@ dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases
 
 ## 注意事项
 
-- **DSH 兼容性** — 支持并已验证 `0.2.1-rc.4`、`0.2.1-rc.5`、`0.2.2-alpha.3`、`0.2.2-rc.1`、`0.2.2-rc.2`、`0.2.2-rc.3`。`0.2.2-alpha.2` 存在宿主 agent preset 故障，不在支持范围内。
+- **DSH 兼容性** — 支持并已验证 `0.2.1-rc.4` 至 `0.2.2-rc.3`。`0.2.2-alpha.2` 存在宿主 agent preset 故障，不在支持范围内。
 - **Node.js** — 要求 `24.14.0` 及以上版本，目前已在 `24.14.0` 上验证。
 - **运行平台** — 当前支持 Windows x64；上述版本均通过 npm / Web 验证，`0.2.2-rc.3` 同时通过 Desktop 验证。
-- **界面语言** — 插件说明支持中英文，随 DSH 的语言设置切换；npm 页面和安装前的包描述仍为英文。
 - **回想范围** — 当前支持本会话内的回想，跨会话回想已列入开发计划。
 - **spill 文件保留** — DSH 会将超长工具输出保存为 spill 文件。为保留后续回想所需的完整输出，`dsh-recollection` 默认通过配置让 DSH 将新生成的 spill 文件保存到 DSH 数据目录下的 `spills` 目录，并关闭自动清理。此设置不会迁移已有的 spill 文件，也无法恢复已经丢失的文件。
 

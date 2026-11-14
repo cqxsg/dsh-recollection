@@ -17,22 +17,34 @@ Proactive recall for DeepSeek Harness. Even when context compaction causes AI to
 Install `dsh-recollection` using `dsh`:
 
 ```sh
+# dsh desktop
+dsh plugin --profile desktop add dsh-recollection
+
+# dsh web
 dsh plugin --profile web add dsh-recollection
 ```
 
 Update to the latest version:
 
 ```sh
+# dsh desktop
+dsh plugin --profile desktop update dsh-recollection@latest
+
+# dsh web
 dsh plugin --profile web update dsh-recollection@latest
 ```
 
 Or install from GitHub Release:
 
 ```sh
+# dsh desktop
+dsh plugin --profile desktop add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
+
+# dsh web
 dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
 ```
 
-Fully quit and restart DSH after installing or updating. For Desktop, choose Quit from the system tray; closing the window may leave the process running. The plugin is enabled by default, and AI will recall information when needed.
+Fully quit and restart DSH after installing or updating. The plugin is enabled by default, and AI will recall information when needed.
 
 ## How it works
 
@@ -97,10 +109,9 @@ The test uses 10,000 synthetic records with an average text body of approximatel
 
 ## Notes
 
-- **DSH compatibility** — Supported and validated versions: `0.2.1-rc.4`, `0.2.1-rc.5`, `0.2.2-alpha.3`, `0.2.2-rc.1`, `0.2.2-rc.2`, and `0.2.2-rc.3`. `0.2.2-alpha.2` is excluded because of a host agent preset defect.
+- **DSH compatibility** — Supported and validated from `0.2.1-rc.4` through `0.2.2-rc.3`. `0.2.2-alpha.2` has a host agent preset defect and is not supported.
 - **Node.js** — Requires `24.14.0` or later; validated with `24.14.0`.
 - **Platform** — Windows x64; all versions above passed npm / Web validation, and `0.2.2-rc.3` also passed Desktop validation.
-- **Interface language** — Plugin descriptions support English and Chinese and follow DSH's language setting. npm and pre-installation package descriptions remain in English.
 - **Recall scope** — Recall currently covers the current session. Cross-session recall is planned.
 - **Spill file retention** — DSH stores oversized tool outputs in spill files. To preserve complete outputs for later recall, `dsh-recollection` configures DSH by default to store new spill files in the `spills` directory under the DSH data directory and disable automatic cleanup. This does not move existing spill files or restore files that have already been lost.
 
