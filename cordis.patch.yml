@@ -1,0 +1,11 @@
+# Applied after the DSH base/Web bundles and before user preferences.
+- id: spill-local
+  config:
+    root: !!js dshHomePath('spills')
+    cleanupPeriodDays: 0
+- insert:
+    - id: recall
+      name: dsh-recollection
+      config:
+        enabled: true
+        diagnostics: false

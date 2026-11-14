@@ -1,0 +1,21 @@
+[package]
+name = "dsh-recollection-worker"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[dependencies]
+grep-matcher = { git = "https://github.com/BurntSushi/ripgrep", rev = "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f" }
+grep-regex = { git = "https://github.com/BurntSushi/ripgrep", rev = "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f" }
+grep-searcher = { git = "https://github.com/BurntSushi/ripgrep", rev = "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f" }
+grep-printer = { git = "https://github.com/BurntSushi/ripgrep", rev = "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f" }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

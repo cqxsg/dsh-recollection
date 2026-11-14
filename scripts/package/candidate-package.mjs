@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import { readdir, readFile, lstat } from 'node:fs/promises';
+import { join, posix, isAbsolute } from 'node:path';
+import { createHash } from 'node:crypto';
+import { verifyNativeNotices } from '../build/native-notice-files.mjs';
+
+export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+export async function filesUnder(root, prefix = '') {
+  const files = [];
+  for (const name of (await readdir(join(root, prefix))).sort()) {
+    const path = posix.join(prefix, name), info = await lstat(join(root, path));
+    assert.ok(!info.isSymbolicLink(), `Unexpected link: ${path}`);
+    if (info.isDirectory()) files.push(...await filesUnder(root, path));
+    else { assert.ok(info.isFile(), `Unexpected file type: ${path}`); files.push(path); }
+  }
+  return files.sort();
+}
+
+/** Verify the extracted payload, including every declared export and native identity. */
+export async function verifyPackage(root, expectedPackage, forbiddenPaths = []) {
+  const names = await filesUnder(root);
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+  assert.deepEqual(pkg, expectedPackage);
+  assert.equal(pkg.private, true);
+  assert.equal(pkg.license, 'Apache-2.0');
+  assert.deepEqual(pkg.os, ['win32']); assert.deepEqual(pkg.cpu, ['x64']);
+  assert.equal(pkg.engines.dsh, '0.2.1-rc.4'); assert.equal(pkg.engines.node, '>=24.14.0');
+  for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) assert.equal(pkg.scripts[hook], undefined);
+  const entries = [pkg.main, pkg.types, pkg.dsh.bundle.patch];
+  const visit = value => typeof value === 'string' ? entries.push(value) : Object.values(value).forEach(visit);
+  visit(pkg.exports);
+  for (const path of entries) {
+    assert.ok(path.startsWith('./') && !path.split('/').includes('..'), `Invalid entry: ${path}`);
+    assert.ok(names.includes(path.slice(2)), `Missing entry: ${path}`);
+  }
+  for (const path of ['lib/client.js', 'lib/native/manifest.json', 'lib/native/worker.exe', 'README.md', 'LICENSE']) assert.ok(names.includes(path), `Missing ${path}`);
+  const license = await readFile(join(root, 'LICENSE'), 'utf8');
+  assert.match(license, /Apache License\s+Version 2\.0, January 2004/);
+  assert.match(license, /END OF TERMS AND CONDITIONS/);
+  const inventory = [];
+  for (const path of names) {
+    assert.ok(['package.json', 'README.md', 'LICENSE', 'cordis.patch.yml'].includes(path) || path.startsWith('lib/'), `Unexpected payload: ${path}`);
+    // Host attachment declarations are generated product types.
+    const attachmentDeclaration = /^lib\/types\/host\/attachments\/[^/]+\.d\.ts(?:\.map)?$/.test(path);
+    assert.ok(attachmentDeclaration || !/(^|\/)(node_modules|\.local|experiments|test|sessions|attachments|target)(\/|$)/.test(path), `Private/development payload: ${path}`);
+    const bytes = await readFile(join(root, path));
+    for (const forbidden of forbiddenPaths.filter(Boolean)) {
+      for (const spelling of new Set([forbidden, forbidden.replaceAll('\\', '/'), forbidden.replaceAll('\\', '\\\\')])) {
+        assert.equal(bytes.toString('utf8').toLowerCase().includes(spelling.toLowerCase()), false, `Build path leaked in ${path}`);
+      }
+    }
+    if (path.endsWith('.map')) {
+      const map = JSON.parse(bytes);
+      for (const source of [map.sourceRoot ?? '', ...(map.sources ?? [])]) {
+        assert.ok(!isAbsolute(source) && !/^[a-z]+:|^\\\\/i.test(source), `Non-portable map: ${path}: ${source}`);
+      }
+    }
+    inventory.push({ path, bytes: bytes.length, sha256: sha256(bytes) });
+  }
+  const worker = JSON.parse(await readFile(join(root, 'lib/native/manifest.json'), 'utf8'));
+  assert.equal(worker.executable, 'worker.exe'); assert.equal(worker.protocol, 1);
+  assert.equal(worker.target, 'x86_64-pc-windows-gnu'); assert.equal(worker.ripgrep, '15.2.0');
+  assert.equal(worker.sha256, inventory.find(file => file.path === 'lib/native/worker.exe').sha256);
+  assert.equal(worker.flags, undefined);
+  await verifyNativeNotices(join(root, 'lib/native/third-party'), { rustVersion: worker.rustVersion, target: worker.target });
+  const readme = await readFile(join(root, 'README.md'), 'utf8');
+  for (const [, link] of readme.matchAll(/\]\(([^)]+)\)/g)) {
+    if (!/^https?:/.test(link)) assert.ok(names.includes(link.replace(/^\.\//, '')), `README link outside package: ${link}`);
+  }
+  assert.match(readme, new RegExp(pkg.version.replaceAll('.', '\\.')));
+  return { package: pkg, files: inventory, worker };
+}

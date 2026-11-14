@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="812" viewBox="0 0 1700 812" role="img" aria-labelledby="figure-title">
+  <title id="figure-title">dsh-recollection 调度与资源管理</title>
+  <desc>任务调度安排历史准备与文件基准采集，调用执行管理搜索与终止，缓存管理统一保护、计量和回收。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12.5" markerHeight="12.5" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678"/>
+    </marker>
+  </defs>
+  <style>
+    .canvas { fill: #fff; }
+    .region { fill: #f4f6f8; stroke: #8d9ba8; stroke-width: 3.35; }
+    .entry-region, .channel-region, .call-region, .memory-region { stroke: #8d9ba8; }
+    .region-label { fill: #273848; font: 700 29px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; }
+    .node { fill: #fff; stroke: #58697a; stroke-width: 3.1; }
+    .entry-node { fill: #ffffff; stroke: #748596; }
+    .scheduler-node { fill: #dfefe3; }
+    .channel-node { fill: #dce9f8; }
+    .call-node, .search-node, .control-node { fill: #e7e9f5; }
+    .memory-node, .cache-node { fill: #f9e9d8; }
+    .node-label { fill: #263544; font: 570 29px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor: middle; dominant-baseline: middle; }
+    .edge { fill: none; stroke: #566678; stroke-width: 3.65; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    .edge.control-edge { stroke: #8393a2; stroke-dasharray: 8 8; }
+  </style>
+
+  <rect class="canvas" width="1700" height="812"/>
+
+  <!-- One consistent neutral ground lets the interior modules carry semantic color. -->
+  <g id="c:entry" data-kind="container"><rect class="region entry-region" x="50" y="28" width="690" height="280" rx="18"/><text class="region-label" x="78" y="70">任务调度</text></g>
+  <g id="c:channels" data-kind="container"><rect class="region channel-region" x="50" y="330" width="690" height="220" rx="18"/><text class="region-label" x="78" y="373">数据准备</text></g>
+  <g id="c:calls" data-kind="container"><rect class="region call-region" x="840" y="28" width="810" height="522" rx="18"/><text class="region-label" x="868" y="70">调用执行</text></g>
+  <g id="c:memory" data-kind="container"><rect class="region memory-region" x="50" y="600" width="1600" height="188" rx="18"/><text class="region-label" x="78" y="644">缓存管理</text></g>
+
+  <!-- Wire ports remove the border without introducing white cuts in tinted regions. -->
+  <g id="boundary-ports" aria-hidden="true">
+    <!-- Right edge of the entry region: inner neutral ground / outer white. -->
+    <g fill="#f4f6f8"><rect x="734" y="242" width="6" height="16"/><rect x="734" y="262" width="6" height="16"/></g>
+    <g fill="#fff"><rect x="740" y="242" width="6" height="16"/><rect x="740" y="262" width="6" height="16"/></g>
+    <!-- Left edge of the tools region. -->
+    <g fill="#fff"><rect x="834" y="126" width="6" height="16"/><rect x="834" y="262" width="6" height="16"/><rect x="834" y="292" width="6" height="16"/><rect x="834" y="322" width="6" height="16"/></g>
+    <g fill="#f4f6f8"><rect x="840" y="126" width="6" height="16"/><rect x="840" y="262" width="6" height="16"/><rect x="840" y="292" width="6" height="16"/><rect x="840" y="322" width="6" height="16"/></g>
+    <!-- Bottom edge of entry and top edge of independent execution. -->
+    <g fill="#f4f6f8"><rect x="335" y="302" width="16" height="6"/><rect x="439" y="302" width="16" height="6"/><rect x="335" y="330" width="16" height="6"/><rect x="439" y="330" width="16" height="6"/></g>
+    <g fill="#fff"><rect x="335" y="308" width="16" height="6"/><rect x="439" y="308" width="16" height="6"/><rect x="335" y="324" width="16" height="6"/><rect x="439" y="324" width="16" height="6"/></g>
+    <!-- Bottom edges of execution and tools. -->
+    <g fill="#f4f6f8"><rect x="197" y="544" width="16" height="6"/><rect x="317" y="544" width="16" height="6"/><rect x="1032" y="544" width="16" height="6"/></g>
+    <g fill="#fff"><rect x="197" y="550" width="16" height="6"/><rect x="317" y="550" width="16" height="6"/><rect x="1032" y="550" width="16" height="6"/></g>
+    <!-- Top edge of the cache region. -->
+    <g fill="#fff"><rect x="197" y="594" width="16" height="6"/><rect x="257" y="594" width="16" height="6"/><rect x="317" y="594" width="16" height="6"/><rect x="812" y="594" width="16" height="6"/><rect x="1032" y="594" width="16" height="6"/></g>
+    <g fill="#f4f6f8"><rect x="197" y="600" width="16" height="6"/><rect x="257" y="600" width="16" height="6"/><rect x="317" y="600" width="16" height="6"/><rect x="812" y="600" width="16" height="6"/><rect x="1032" y="600" width="16" height="6"/></g>
+  </g>
+
+  <!-- Symmetric source and scheduler ports. -->
+  <g id="e:view-scheduler" data-from="view" data-to="scheduler"><path class="edge" d="M222.5 165 V188 H347 V216"/></g>
+  <g id="e:background-scheduler" data-from="background" data-to="scheduler"><path class="edge" d="M567.5 165 V188 H443 V216"/></g>
+  <g id="e:calls-scheduler" data-from="calls" data-to="scheduler"><path class="edge" d="M1140 134 H770 V250 H502.5"/></g>
+  <g id="e:scheduler-history" data-from="scheduler" data-to="history"><path class="edge" d="M343 284 V393 H249 V418"/></g>
+  <g id="e:scheduler-hash" data-from="scheduler" data-to="hash"><path class="edge" d="M447 284 V393 H541 V418"/></g>
+
+  <!-- Dedicated lanes for control, pinning and cache access. -->
+  <g id="e:scheduler-match" data-from="scheduler" data-to="match"><path class="edge control-edge" d="M502.5 270 H1000 V418"/></g>
+  <g id="e:calls-pin" data-from="calls" data-to="pin"><path class="edge" d="M1170 171 V300 H795 V575 H265 V680"/></g>
+  <g id="e:calls-cache" data-from="calls" data-to="cache"><path class="edge" d="M1230 171 V330 H820 V640 H645 V680"/></g>
+  <g id="e:calls-match" data-from="calls" data-to="match"><path class="edge" d="M1290 171 V370 H1080 V418"/></g>
+  <g id="e:calls-control" data-from="calls" data-to="control"><path class="edge" d="M1350 171 V370 H1500 V418"/></g>
+  <g id="e:control-match" data-from="control" data-to="match"><path class="edge control-edge" d="M1390 453 H1150"/></g>
+
+  <!-- The history and search outputs enter different, centered cache ports. -->
+  <g id="e:history-pin" data-from="history" data-to="pin"><path class="edge" d="M205 488 V680"/></g>
+  <g id="e:history-cache" data-from="history" data-to="cache"><path class="edge" d="M325 488 V620 H575 V680"/></g>
+  <g id="e:match-cache" data-from="match" data-to="cache"><path class="edge" d="M1040 488 V660 H715 V680"/></g>
+  <g id="e:pin-cache" data-from="pin" data-to="cache"><path class="edge control-edge" d="M355 714 H525"/></g>
+
+  <g id="e:cache-budget" data-from="cache" data-to="budget"><path class="edge" d="M765 714 H935"/></g>
+  <g id="e:budget-evict" data-from="budget" data-to="evict"><path class="edge" d="M1175 714 H1345"/></g>
+  <g id="e:evict-cache" data-from="evict" data-to="cache"><path class="edge" d="M1465 748 V771 H645 V748"/></g>
+
+  <!-- Three independent overpasses, all away from region boundaries. -->
+  <g id="crossing-clearances" aria-hidden="true">
+    <path d="M987 300 H1013" fill="none" stroke="#f4f6f8" stroke-width="12"/>
+    <path d="M987 300 H1013" fill="none" stroke="#566678" stroke-width="3.65"/>
+    <path d="M987 330 H1013" fill="none" stroke="#f4f6f8" stroke-width="12"/>
+    <path d="M987 330 H1013" fill="none" stroke="#566678" stroke-width="3.65"/>
+    <path d="M313 575 H337" fill="none" stroke="#ffffff" stroke-width="11"/>
+    <path d="M313 575 H337" fill="none" stroke="#566678" stroke-width="3.65"/>
+  </g>
+
+  <g id="n:view" data-kind="node"><rect class="node entry-node" x="120" y="103" width="205" height="62" rx="13"/><text class="node-label" x="222.5" y="135">活跃视图</text></g>
+  <g id="n:background" data-kind="node"><rect class="node entry-node" x="465" y="103" width="205" height="62" rx="13"/><text class="node-label" x="567.5" y="135">后台任务</text></g>
+  <g id="n:scheduler" data-kind="node"><rect class="node scheduler-node" x="287.5" y="216" width="215" height="68" rx="13"/><text class="node-label" x="395" y="251">优先级调度</text></g>
+  <g id="n:history" data-kind="node"><rect class="node channel-node" x="140" y="418" width="218" height="70" rx="13"/><text class="node-label" x="249" y="454">历史准备</text></g>
+  <g id="n:hash" data-kind="node"><rect class="node channel-node" x="432" y="418" width="218" height="70" rx="13"/><text class="node-label" x="541" y="454">采集文件基准</text></g>
+  <g id="n:calls" data-kind="node"><rect class="node call-node" x="1140" y="103" width="240" height="68" rx="13"/><text class="node-label" x="1260" y="138">工具调用</text></g>
+  <g id="n:match" data-kind="node"><rect class="node search-node" x="930" y="418" width="220" height="70" rx="13"/><text class="node-label" x="1040" y="454">搜索执行</text></g>
+  <g id="n:control" data-kind="node"><rect class="node control-node" x="1390" y="418" width="220" height="70" rx="13"/><text class="node-label" x="1500" y="454">终止控制</text></g>
+  <g id="n:pin" data-kind="node"><rect class="node memory-node" x="115" y="680" width="240" height="68" rx="13"/><text class="node-label" x="235" y="715">使用保护</text></g>
+  <g id="n:cache" data-kind="node"><rect class="node cache-node" x="525" y="680" width="240" height="68" rx="13"/><text class="node-label" x="645" y="715">会话缓存</text></g>
+  <g id="n:budget" data-kind="node"><rect class="node memory-node" x="935" y="680" width="240" height="68" rx="13"/><text class="node-label" x="1055" y="715">缓存预算</text></g>
+  <g id="n:evict" data-kind="node"><rect class="node memory-node" x="1345" y="680" width="240" height="68" rx="13"/><text class="node-label" x="1465" y="715">按会话回收</text></g>
+</svg>

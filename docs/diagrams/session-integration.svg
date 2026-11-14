@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="520" viewBox="0 0 1520 520" role="img" aria-labelledby="diagram-title">
+  <title id="diagram-title">会话感知与接入</title>
+  <desc>页面会话和浏览器状态由 Client 采集上报，Host 更新状态并触发准备与调度。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678"/>
+    </marker>
+  </defs>
+  <style>
+    .region { fill:#f4f6f8; stroke:#8d9ba8; stroke-width:2.8; }
+    .region.no-border { stroke:none; }
+    .region-label { font:700 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; fill:#273848; }
+    .node { stroke:#58697a; stroke-width:2.9; }
+    .node-label { fill:#263544; font:570 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+    .edge { fill:none; stroke:#566678; stroke-width:3.25; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .edge.control { stroke:#8393a2; stroke-dasharray:8 8; }
+    .edge-label { fill:#465464; font:520 19px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1520" height="520" fill="#ffffff"/>
+  <g id="c:sources" data-kind="container"><rect class="region" x="25" y="60" width="260" height="400" rx="17"/><text class="region-label" x="47" y="101">状态来源</text></g>
+  <g id="c:client" data-kind="container"><rect class="region" x="325" y="60" width="450" height="400" rx="17"/><text class="region-label" x="347" y="101">Client</text></g>
+  <g id="c:host" data-kind="container"><rect class="region" x="815" y="60" width="680" height="400" rx="17"/><text class="region-label" x="837" y="101">Host</text></g>
+  <g id="boundary-ports" aria-hidden="true">
+    <rect x="278" y="156" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="285" y="156" width="7" height="18" fill="#ffffff"/>
+    <rect x="278" y="262" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="285" y="262" width="7" height="18" fill="#ffffff"/>
+    <rect x="278" y="368" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="285" y="368" width="7" height="18" fill="#ffffff"/>
+    <rect x="318" y="244" width="7" height="18" fill="#ffffff"/>
+    <rect x="325" y="244" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="318" y="262" width="7" height="18" fill="#ffffff"/>
+    <rect x="325" y="262" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="318" y="280" width="7" height="18" fill="#ffffff"/>
+    <rect x="325" y="280" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="768" y="262" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="775" y="262" width="7" height="18" fill="#ffffff"/>
+    <rect x="808" y="262" width="7" height="18" fill="#ffffff"/>
+    <rect x="815" y="262" width="7" height="18" fill="#f4f6f8"/>
+  </g>
+  <g id="e:sessions-observe" data-from="sessions" data-to="observe"><path class="edge" d="M245 165 H305 V253 H355"/></g>
+  <g id="e:layout-observe" data-from="layout" data-to="observe"><path class="edge" d="M245 271 H355"/></g>
+  <g id="e:browser-observe" data-from="browser" data-to="observe"><path class="edge" d="M245 377 H305 V289 H355"/></g>
+  <g id="e:observe-report" data-from="observe" data-to="report"><path class="edge" d="M535 271 H565"/></g>
+  <g id="e:report-check" data-from="report" data-to="check"><path class="edge" d="M745 271 H840"/></g>
+  <g id="e:check-update" data-from="check" data-to="update"><path class="edge" d="M1020 271 H1050"/></g>
+  <g id="e:update-prepare" data-from="update" data-to="prepare"><path class="edge" d="M1230 253 H1257.5 V201 H1285"/></g>
+  <g id="e:update-schedule" data-from="update" data-to="schedule"><path class="edge" d="M1230 289 H1257.5 V341 H1285"/></g>
+  <g id="n:sessions" data-kind="node"><rect class="node" x="65" y="130" width="180" height="70" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="155" y="166">会话选择</text></g>
+  <g id="n:layout" data-kind="node"><rect class="node" x="65" y="236" width="180" height="70" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="155" y="272">面板状态</text></g>
+  <g id="n:browser" data-kind="node"><rect class="node" x="65" y="342" width="180" height="70" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="155" y="378">页面状态</text></g>
+  <g id="n:observe" data-kind="node"><rect class="node" x="355" y="236" width="180" height="70" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="445" y="272">状态采集</text></g>
+  <g id="n:report" data-kind="node"><rect class="node" x="565" y="236" width="180" height="70" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="655" y="272">状态上报</text></g>
+  <g id="n:check" data-kind="node"><rect class="node" x="840" y="236" width="180" height="70" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="930" y="272">状态校验</text></g>
+  <g id="n:update" data-kind="node"><rect class="node" x="1050" y="236" width="180" height="70" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1140" y="272">状态更新</text></g>
+  <g id="n:prepare" data-kind="node"><rect class="node" x="1285" y="166" width="180" height="70" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1375" y="202">历史预热</text></g>
+  <g id="n:schedule" data-kind="node"><rect class="node" x="1285" y="306" width="180" height="70" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1375" y="342">任务调度</text></g>
+</svg>

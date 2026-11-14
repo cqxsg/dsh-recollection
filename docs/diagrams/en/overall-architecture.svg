@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="468" viewBox="0 0 1300 468" role="img" aria-labelledby="figure-title">
+  <title id="figure-title">dsh-recollection overall architecture</title>
+  <desc>Overview of the Host, DSH data, and external interactions. Functional categories use consistent soft fills without emphasizing a single core node.</desc>
+  <defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10.4" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 1 L10.4 6 L1 11 Z" fill="#566678" /></marker></defs>
+  <style>
+    .canvas { fill: #ffffff; }
+    .region { stroke-width: 2.6; }
+    .host-region { fill: #f4f7fa; stroke: #8e9eaf; }
+    .data-region { fill: #faf7f2; stroke: #b8a896; }
+    .region-label { font: 700 27px 'Segoe UI',Arial,sans-serif; fill: #28394a; }
+    .node { fill: #ffffff; stroke: #607082; stroke-width: 2.8; }
+    .actor { fill: #ffffff; stroke: #77889b; }
+    .core { fill: #dce9f8; }
+    .support-node { fill: #dfefe3; }
+    .state-node { fill: #f9e9d8; }
+    .data-node { fill: #f9e9d8; }
+    .node-label { fill: #253545; font: 570 26px 'Segoe UI',Arial,sans-serif; text-anchor: middle; dominant-baseline:central; }
+    .edge { fill: none; stroke: #566678; stroke-width: 3.35; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    .edge.both { marker-start: url(#arrow); }
+    .edge.support { stroke: #82919e; stroke-dasharray: 8 8; }
+  </style>
+  <rect class="canvas" width="1300" height="468" />
+  <g id="c:host" data-kind="container"><rect class="region host-region" x="230" y="19" width="780" height="430" rx="18" /><text class="region-label" x="260" y="59">Host</text></g>
+  <g id="c:data" data-kind="container"><rect class="region data-region" x="1035" y="19" width="245" height="430" rx="18" /><text class="region-label" x="1053" y="59">DSH data</text></g>
+
+  <g id="e:client-prepare" data-from="client" data-to="prepare"><path class="edge" d="M205 138 H262" /></g>
+  <g id="e:agent-recall" data-from="agent" data-to="recall"><path class="edge both" d="M205 265 H525" /></g>
+  <g id="e:prepare-history" data-from="prepare" data-to="history"><path class="edge both" d="M472 138 H1053" /></g>
+  <g id="e:prepare-recall" data-from="prepare" data-to="recall"><path class="edge both" d="M315 171 V208 H629 V232" /></g>
+  <g id="e:recall-history" data-from="recall" data-to="history"><path class="edge both" d="M691 232 V200 H1023 V153 H1053" /></g>
+  <g id="e:recall-attach" data-from="recall" data-to="attach"><path class="edge both" d="M733 265 H780" /></g>
+  <g id="e:attach-files" data-from="attach" data-to="files"><path class="edge both" d="M982 265 H1053" /></g>
+  <g id="e:state-storage" data-from="state" data-to="storage"><path class="edge both" d="M982 392 H1053" /></g>
+  <g id="e:state-recall" data-from="state" data-to="recall"><path class="edge both" d="M780 392 H685 V298" /></g>
+  <g id="e:state-attach" data-from="state" data-to="attach"><path class="edge both" d="M881 359 V298" /></g>
+  <g id="e:resource-prepare" data-from="resource" data-to="prepare"><path class="edge support" d="M430 359 V271" style="marker-end:none" /><path class="edge support" d="M430 259 V171" /></g>
+  <g id="e:resource-recall" data-from="resource" data-to="recall"><path class="edge support" d="M517 392 H573 V298" /></g>
+
+  <g id="n:client" data-kind="node"><rect class="node actor" x="20" y="105" width="185" height="66" rx="13" /><text class="node-label" x="112.5" y="138">Client</text></g>
+  <g id="n:agent" data-kind="node"><rect class="node actor" x="20" y="232" width="185" height="66" rx="13" /><text class="node-label" x="112.5" y="265">DSH Agent</text></g>
+  <g id="n:prepare" data-kind="node"><rect class="node core" x="262" y="105" width="210" height="66" rx="13" /><text class="node-label" x="367" y="138" style="font-size:24px"><tspan x="367" y="125.52">History</tspan><tspan x="367" y="150.48">preparation</tspan></text></g>
+  <g id="n:recall" data-kind="node"><rect class="node core" x="525" y="232" width="208" height="66" rx="13" /><text class="node-label" x="629" y="265">Recall tools</text></g>
+  <g id="n:attach" data-kind="node"><rect class="node core" x="780" y="232" width="202" height="66" rx="13" /><text class="node-label" x="881" y="265" style="font-size:24px"><tspan x="881" y="252.52">Attachment</tspan><tspan x="881" y="277.48">access</tspan></text></g>
+  <g id="n:resource" data-kind="node"><rect class="node support-node" x="262" y="359" width="255" height="66" rx="13" /><text class="node-label" x="389.5" y="392" style="font-size:24px"><tspan x="389.5" y="379.52">Scheduling &amp;</tspan><tspan x="389.5" y="404.48">resources</tspan></text></g>
+  <g id="n:state" data-kind="node"><rect class="node state-node" x="780" y="359" width="202" height="66" rx="13" /><text class="node-label" x="881" y="392" style="font-size:24px"><tspan x="881" y="379.52">Persistent</tspan><tspan x="881" y="404.48">state</tspan></text></g>
+  <g id="n:history" data-kind="node"><rect class="node data-node" x="1053" y="105" width="209" height="66" rx="13" /><text class="node-label" x="1157.5" y="138">Original history</text></g>
+  <g id="n:files" data-kind="node"><rect class="node data-node" x="1053" y="232" width="209" height="66" rx="13" /><text class="node-label" x="1157.5" y="265">Related files</text></g>
+  <g id="n:storage" data-kind="node"><rect class="node data-node" x="1053" y="359" width="209" height="66" rx="13" /><text class="node-label" x="1157.5" y="392" style="font-size:24px"><tspan x="1157.5" y="379.52">Persistent</tspan><tspan x="1157.5" y="404.48">storage</tspan></text></g>
+</svg>

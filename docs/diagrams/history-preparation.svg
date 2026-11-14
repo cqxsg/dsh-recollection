@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="510" viewBox="0 0 1560 510" role="img" aria-labelledby="diagram-title">
+  <title id="diagram-title">历史接入与准备</title>
+  <desc>触发来源进入任务管理；根据原始历史准备可检索原文缓存并校验后复用。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678"/>
+    </marker>
+  </defs>
+  <style>
+    .region { fill:#f4f6f8; stroke:#8d9ba8; stroke-width:2.8; }
+    .region.no-border { stroke:none; }
+    .region-label { font:700 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; fill:#273848; }
+    .node { stroke:#58697a; stroke-width:2.9; }
+    .node-label { fill:#263544; font:570 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+    .edge { fill:none; stroke:#566678; stroke-width:3.25; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .edge.control { stroke:#8393a2; stroke-dasharray:8 8; }
+    .edge-label { fill:#465464; font:520 19px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1560" height="510" fill="#ffffff"/>
+  <g id="c:triggers" data-kind="container"><rect class="region" x="24" y="40" width="252" height="430" rx="17"/><text class="region-label" x="46" y="81">触发来源</text></g>
+  <g id="c:preparation" data-kind="container"><rect class="region" x="309" y="40" width="1226" height="430" rx="17"/><text class="region-label" x="331" y="81">历史准备</text></g>
+  <g id="boundary-ports" aria-hidden="true">
+    <rect x="269" y="146" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="276" y="146" width="7" height="18" fill="#ffffff"/>
+    <rect x="269" y="266" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="276" y="266" width="7" height="18" fill="#ffffff"/>
+    <rect x="269" y="386" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="276" y="386" width="7" height="18" fill="#ffffff"/>
+    <rect x="302" y="240" width="7" height="18" fill="#ffffff"/>
+    <rect x="309" y="240" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="302" y="266" width="7" height="18" fill="#ffffff"/>
+    <rect x="309" y="266" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="302" y="292" width="7" height="18" fill="#ffffff"/>
+    <rect x="309" y="292" width="7" height="18" fill="#f4f6f8"/>
+  </g>
+  <g id="e:view-service" data-from="view" data-to="service"><path class="edge" d="M248 155 H286 V249 H335"/></g>
+  <g id="e:demand-service" data-from="demand" data-to="service"><path class="edge" d="M248 275 H335"/></g>
+  <g id="e:changes-service" data-from="changes" data-to="service"><path class="edge" d="M248 395 H286 V301 H335"/></g>
+  <g id="e:history-snapshot" data-from="history" data-to="snapshot"><path class="edge" d="M672 191 V239"/></g>
+  <g id="e:service-snapshot" data-from="service" data-to="snapshot"><path class="edge" d="M535 275 H572"/></g>
+  <g id="e:snapshot-range" data-from="snapshot" data-to="range"><path class="edge" d="M772 275 H809"/></g>
+  <g id="e:range-records" data-from="range" data-to="records"><path class="edge" d="M1009 275 H1046"/></g>
+  <g id="e:records-cache" data-from="records" data-to="cache"><path class="edge" d="M1246 275 H1282"/></g>
+  <g id="e:cache-records" data-from="cache" data-to="records"><path class="edge control" d="M1397 239 V202 H1146 V239"/></g>
+  <g id="n:view" data-kind="node"><rect class="node" x="48" y="119" width="200" height="72" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="148" y="156">页面状态</text></g>
+  <g id="n:demand" data-kind="node"><rect class="node" x="48" y="239" width="200" height="72" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="148" y="276">搜索请求</text></g>
+  <g id="n:changes" data-kind="node"><rect class="node" x="48" y="359" width="200" height="72" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="148" y="396">历史变更</text></g>
+  <g id="n:service" data-kind="node"><rect class="node" x="335" y="239" width="200" height="72" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="435" y="276">任务管理</text></g>
+  <g id="n:history" data-kind="node"><rect class="node" x="572" y="119" width="200" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="672" y="156">原始历史</text></g>
+  <g id="n:snapshot" data-kind="node"><rect class="node" x="572" y="239" width="200" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="672" y="276">读取快照</text></g>
+  <g id="n:range" data-kind="node"><rect class="node" x="809" y="239" width="200" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:24px" x="909" y="276">识别回想范围</text></g>
+  <g id="n:records" data-kind="node"><rect class="node" x="1046" y="239" width="200" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:24px" x="1146" y="276">整理原文记录</text></g>
+  <g id="n:cache" data-kind="node"><rect class="node" x="1282" y="239" width="230" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:24px" x="1397" y="276">可检索原文缓存</text></g>
+  <g aria-label="校验后复用"><text class="edge-label" x="1270" y="182">校验后复用</text></g>
+</svg>

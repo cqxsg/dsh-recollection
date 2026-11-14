@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1580" height="855" viewBox="0 0 1580 855" role="img" aria-labelledby="diagram-title">
+  <title id="diagram-title">搜索与读取</title>
+  <desc>搜索、读取和附件核验经结果组织汇集，再按上下文预算统一分页。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678"/>
+    </marker>
+  </defs>
+  <style>
+    .region { fill:#f4f6f8; stroke:#8d9ba8; stroke-width:2.8; }
+    .region.no-border { stroke:none; }
+    .region-label { font:700 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; fill:#273848; }
+    .node { stroke:#58697a; stroke-width:2.9; }
+    .node-label { fill:#263544; font:570 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+    .edge { fill:none; stroke:#566678; stroke-width:3.25; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .edge.control { stroke:#8393a2; stroke-dasharray:8 8; }
+    .edge-label { fill:#465464; font:520 19px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1580" height="855" fill="#ffffff"/>
+  <g id="c:search" data-kind="container"><rect class="region" x="27" y="30" width="1105" height="215" rx="17"/><text class="region-label" x="49" y="71">搜索</text></g>
+  <g id="c:read" data-kind="container"><rect class="region" x="27" y="270" width="1105" height="215" rx="17"/><text class="region-label" x="49" y="311">读取</text></g>
+  <g id="c:attachment" data-kind="container"><rect class="region" x="27" y="510" width="1105" height="316" rx="17"/><text class="region-label" x="49" y="551">附件</text></g>
+  <g id="c:output" data-kind="container"><rect class="region" x="1164" y="30" width="388" height="796" rx="17"/><text class="region-label" x="1186" y="71">结果输出</text></g>
+  <g id="boundary-ports" aria-hidden="true">
+    <rect x="1125" y="151" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="1132" y="151" width="7" height="18" fill="#ffffff"/>
+    <rect x="1157" y="151" width="7" height="18" fill="#ffffff"/>
+    <rect x="1164" y="151" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="1125" y="375" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="1132" y="375" width="7" height="18" fill="#ffffff"/>
+    <rect x="1157" y="375" width="7" height="18" fill="#ffffff"/>
+    <rect x="1164" y="375" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="1125" y="653" width="7" height="18" fill="#f4f6f8"/>
+    <rect x="1132" y="653" width="7" height="18" fill="#ffffff"/>
+    <rect x="1157" y="653" width="7" height="18" fill="#ffffff"/>
+    <rect x="1164" y="653" width="7" height="18" fill="#f4f6f8"/>
+  </g>
+  <g id="e:records-match" data-from="records" data-to="match"><path class="edge" d="M345 160 H450"/></g>
+  <g id="e:match-preview" data-from="match" data-to="preview"><path class="edge" d="M685 160 H790"/></g>
+  <g id="e:history-resolve" data-from="history" data-to="resolve"><path class="edge" d="M345 384 H450"/></g>
+  <g id="e:resolve-text" data-from="resolve" data-to="text"><path class="edge" d="M685 384 H790"/></g>
+  <g id="e:files-verify" data-from="files" data-to="verify"><path class="edge" d="M345 604 H396 V644 H450"/></g>
+  <g id="e:baseline-verify" data-from="baseline" data-to="verify"><path class="edge" d="M345 732 H396 V680 H450"/></g>
+  <g id="e:verify-info" data-from="verify" data-to="info"><path class="edge" d="M685 662 H790"/></g>
+  <g id="e:preview-organize" data-from="preview" data-to="organize"><path class="edge" d="M1025 160 H1210 V207 H1240"/></g>
+  <g id="e:text-organize" data-from="text" data-to="organize"><path class="edge" d="M1025 384 H1178 V225 H1240"/></g>
+  <g id="e:info-organize" data-from="info" data-to="organize"><path class="edge" d="M1025 662 H1197 V243 H1240"/></g>
+  <g id="e:organize-budget" data-from="organize" data-to="budget"><path class="edge" d="M1357.5 261 V419"/></g>
+  <g id="e:budget-pagination" data-from="budget" data-to="pagination"><path class="edge" d="M1357.5 491 V649"/></g>
+  <g id="n:records" data-kind="node"><rect class="node" x="110" y="124" width="235" height="72" rx="13" fill="#e7e9f5"/><text class="node-label" style="font-size:26px" x="227.5" y="161">回想记录</text></g>
+  <g id="n:match" data-kind="node"><rect class="node" x="450" y="124" width="235" height="72" rx="13" fill="#e7e9f5"/><text class="node-label" style="font-size:26px" x="567.5" y="161">搜索匹配</text></g>
+  <g id="n:preview" data-kind="node"><rect class="node" x="790" y="124" width="235" height="72" rx="13" fill="#e7e9f5"/><text class="node-label" style="font-size:26px" x="907.5" y="161">命中片段</text></g>
+  <g id="n:history" data-kind="node"><rect class="node" x="110" y="348" width="235" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="227.5" y="385">原始历史</text></g>
+  <g id="n:resolve" data-kind="node"><rect class="node" x="450" y="348" width="235" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="567.5" y="385">来源校验</text></g>
+  <g id="n:text" data-kind="node"><rect class="node" x="790" y="348" width="235" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="907.5" y="385">原文内容</text></g>
+  <g id="n:files" data-kind="node"><rect class="node" x="110" y="568" width="235" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="227.5" y="605">关联文件</text></g>
+  <g id="n:baseline" data-kind="node"><rect class="node" x="110" y="696" width="235" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="227.5" y="733">核验基准</text></g>
+  <g id="n:verify" data-kind="node"><rect class="node" x="450" y="626" width="235" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="567.5" y="663">附件核验</text></g>
+  <g id="n:info" data-kind="node"><rect class="node" x="790" y="626" width="235" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="907.5" y="663">附件访问结果</text></g>
+  <g id="n:organize" data-kind="node"><rect class="node" x="1240" y="189" width="235" height="72" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1357.5" y="226">结果组织</text></g>
+  <g id="n:budget" data-kind="node"><rect class="node" x="1240" y="419" width="235" height="72" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1357.5" y="456">预算管理</text></g>
+  <g id="n:pagination" data-kind="node"><rect class="node" x="1240" y="649" width="235" height="72" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="1357.5" y="686">分页输出</text></g>
+</svg>

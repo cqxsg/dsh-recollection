@@ -1,0 +1,175 @@
+{
+  "name": "dsh-recollection",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "description": "Single-session recall plugin for DSH rc.4",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json",
+    "./types": {
+      "types": "./lib/types/shared/view-protocol.d.ts"
+    },
+    "./host-contract": {
+      "types": "./lib/typert.host.d.ts",
+      "default": "./lib/typert.host.js"
+    },
+    "./remote": {
+      "types": "./lib/typert.remote-client.d.ts",
+      "default": "./lib/typert.remote-client.js"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "lib/typert.host.js",
+    "lib/typert.host.d.ts",
+    "lib/typert.remote-client.js",
+    "lib/typert.remote-client.d.ts",
+    "lib/typert.remote-client.d.ts.map"
+  ],
+  "engines": {
+    "node": ">=24.14.0",
+    "dsh": "0.2.1-rc.4"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build/clean-build.mjs && npm run generate && tsc --emitDeclarationOnly && tsc -p tsconfig.client.json --emitDeclarationOnly && node scripts/build/build.mjs",
+    "typecheck": "npm run generate && tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "npm run build && node test/runners/test.mjs",
+    "test:web": "npm run build && node test/runners/web.mjs --smoke",
+    "test:browser": "npm run build && node test/runners/web.mjs --browser",
+    "test:history": "npm run build && node test/runners/web.mjs --history",
+    "test:range": "npm run build && node test/runners/web.mjs --range",
+    "test:records": "npm run build && node test/runners/web.mjs --records",
+    "test:preparation": "npm run build && node test/runners/web.mjs --preparation",
+    "test:prewarm": "npm run build && node test/runners/test-prewarm.mjs",
+    "test:scheduling": "npm run build && node test/runners/web.mjs --scheduling",
+    "test:tools": "npm run build && node test/runners/web.mjs --tools",
+    "test:protocol": "npm run build && node test/runners/web.mjs --protocol",
+    "test:references": "npm run build && node test/runners/test-reference-store.mjs",
+    "test:compact-output": "npm run build && node test/runners/web.mjs --compact-output",
+    "test:reference-pages": "npm run build && node test/runners/web.mjs --reference-pages",
+    "test:cursors": "npm run build && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs",
+    "test:budget": "npm run build && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs",
+    "setup:rg": "node --use-env-proxy scripts/setup/install-rg.mjs",
+    "test:matcher": "npm run build && node test/runners/test-matcher.mjs",
+    "test:search": "npm run build && node test/runners/web.mjs --search",
+    "test:read": "npm run build && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs",
+    "test:attachments": "npm run build && node test/runners/web.mjs --attachments",
+    "test:hashes": "npm run build && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs",
+    "test:attachment-scheduling": "npm run build && node test/runners/web.mjs --attachment-scheduling",
+    "test:attachment-read": "npm run build && node test/runners/web.mjs --attachment-read",
+    "test:attachment-lifecycle": "npm run build && node test/runners/test-attachment-lifecycle.mjs",
+    "test:performance": "npm run build && node --test test/performance/performance.test.mjs && node test/runners/test-matcher.mjs && node benchmarks/run.mjs --records 8 --diagnostics compare",
+    "experiment:performance": "npm run build && node benchmarks/run.mjs --repeats 2",
+    "test:recall": "npm run build && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines",
+    "test:recall:browser": "npm run build && node test/runners/web.mjs --recall-browser",
+    "test:tools:browser": "npm run build && node test/runners/web.mjs --tools-browser",
+    "test:recovery": "npm run build && node test/runners/test-recovery.mjs",
+    "check": "npm test && node test/runners/web.mjs --history && node test/runners/web.mjs --range && node test/runners/web.mjs --records && node test/runners/test-prewarm.mjs && node test/runners/test-runtime-lifecycle.mjs && node test/runners/test-runtime-capabilities.mjs && node test/runners/web.mjs --preparation && node test/runners/web.mjs --scheduling && node test/runners/web.mjs --tools && node test/runners/test-recovery.mjs && node test/runners/web.mjs --protocol && node test/runners/test-reference-store.mjs && node test/runners/test-reference-recovery.mjs && node test/runners/web.mjs --compact-output && node test/runners/web.mjs --reference-pages && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs && node test/runners/web.mjs --delivery && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs && node test/runners/test-matcher.mjs && node test/runners/web.mjs --search && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/web.mjs --attachments && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs && node test/runners/web.mjs --attachment-scheduling && node test/runners/web.mjs --attachment-read && node test/runners/test-attachment-lifecycle.mjs",
+    "dev:web": "npm run build && node scripts/dev/dev-web.mjs",
+    "prepack": "npm run build",
+    "generate": "node scripts/build/generate-remote.mjs",
+    "notices:update": "node scripts/build/native-notices.mjs",
+    "notices:check": "node scripts/build/native-notices.mjs --check",
+    "test:delivery": "npm run build && node test/runners/web.mjs --delivery",
+    "pack:candidate": "node scripts/package/pack-candidate.mjs",
+    "test:candidate:config": "node test/runners/test-candidate-config.mjs",
+    "test:recall:concurrency": "npm run build && node test/runners/web.mjs --recall-concurrency",
+    "test:runtime-lifecycle": "npm run build && node test/runners/test-runtime-lifecycle.mjs",
+    "test:runtime-capabilities": "npm run build && node test/runners/test-runtime-capabilities.mjs",
+    "test:reference-recovery": "npm run build && node test/runners/test-reference-recovery.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-attachment": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-fs": "0.2.1-rc.4",
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-agent": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session-query": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-spill-policy": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-storage-domain": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-token-meter": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-tool-call-timeout-policy": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-loader": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-registry": "0.2.1-rc.4",
+    "@deepseek-ai/schemastery": "3.18.5",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+    "@deepseek-ai/dsh": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-agent": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-api-gateway": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-api-remote-access": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-api-remotes": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-app-boot": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-attachment": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-modules": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-store": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-fs": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-home-paths": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-sandbox-policy": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session-query": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-spill-policy": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-storage-domain": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-token-meter": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-tool-call-timeout-policy": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-generator": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-loader": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-typert-registry": "0.2.1-rc.4",
+    "@deepseek-ai/schemastery": "3.18.5",
+    "@types/node": "24.10.0",
+    "esbuild": "0.25.12",
+    "playwright-core": "1.56.1",
+    "typescript": "6.0.3",
+    "zod": "4.4.3"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}

@@ -1,0 +1,23 @@
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+
+if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This development ripgrep installer supports Windows x64 only.');
+const version = '15.2.0', archiveName = `ripgrep-${version}-x86_64-pc-windows-msvc.zip`;
+const sha256 = '71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5';
+const source = `https://github.com/BurntSushi/ripgrep/releases/download/${version}/${archiveName}`;
+const root = fileURLToPath(new URL('../../.local/tools/', import.meta.url));
+await mkdir(root, { recursive: true });
+const response = await fetch(source, { signal: AbortSignal.timeout(30000) });
+if (!response.ok) throw new Error(`rg download failed: ${response.status}`);
+const bytes = Buffer.from(await response.arrayBuffer());
+if (createHash('sha256').update(bytes).digest('hex') !== sha256) throw new Error('rg archive checksum mismatch');
+const archive = join(root, archiveName); await writeFile(archive, bytes);
+const extracted = spawnSync('tar', ['-xf', archive, '-C', root], { windowsHide: true, encoding: 'utf8' });
+if (extracted.status !== 0) throw new Error(`rg extraction failed: ${extracted.stderr}`);
+const executable = join(root, archiveName.slice(0, -4), 'rg.exe');
+const binarySha256 = createHash('sha256').update(await readFile(executable)).digest('hex');
+await writeFile(join(root, 'rg-install.json'), JSON.stringify({ version, source, archiveSha256: sha256, executable, binarySha256 }, null, 2));
+console.log(JSON.stringify({ executable, binarySha256 }));

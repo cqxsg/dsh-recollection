@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="675" height="820" viewBox="0 0 675 820" role="img" aria-labelledby="diagram-title">
+  <title id="diagram-title">dsh-recollection runtime flow</title>
+  <desc>Search and inspect previews, expand original text as needed, search again if more information is needed, then end recall and continue the task.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678" />
+    </marker>
+  </defs>
+  <style>
+    .region { fill:#f4f6f8; stroke:#8d9ba8; stroke-width:2.8; }
+    .region.no-border { stroke:none; }
+    .region-label { font:700 26px 'Segoe UI',Arial,sans-serif; fill:#273848; }
+    .node { stroke:#58697a; stroke-width:2.9; }
+    .node-label { fill:#263544; font:570 26px 'Segoe UI',Arial,sans-serif; text-anchor:middle; dominant-baseline:central; }
+    .edge { fill:none; stroke:#566678; stroke-width:3.25; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .edge.control { stroke:#8393a2; stroke-dasharray:8 8; }
+    .edge-label { fill:#465464; font:520 18px 'Segoe UI',Arial,sans-serif; text-anchor:middle; dominant-baseline:central; }
+  </style>
+  <rect width="675" height="820" fill="#ffffff" />
+  <g id="e:need-search" data-from="need" data-to="search"><path class="edge" d="M330 134 V190" /></g>
+  <g id="e:need-task" data-from="need" data-to="task"><path class="edge" d="M440 82 H635 V754 H440" /></g>
+  <g id="e:search-preview" data-from="search" data-to="preview"><path class="edge" d="M330 262 V322" /></g>
+  <g id="e:preview-enough" data-from="preview" data-to="stop"><path class="edge" d="M440 342 H585 V640 H440" /></g>
+  <g id="e:preview-read" data-from="preview" data-to="read"><path class="edge" d="M330 394 V454" /></g>
+  <g id="e:preview-search" data-from="preview" data-to="search"><path class="edge" d="M220 358 H160 V242 H220" /></g>
+  <g id="e:read-search" data-from="read" data-to="search"><path class="edge" d="M220 490 H90 V210 H220" /></g>
+  <g id="e:preview-stop" data-from="preview" data-to="stop"><path class="edge" d="M440 374 H500 V604 H440" /></g>
+  <g id="e:read-stop" data-from="read" data-to="stop"><path class="edge" d="M330 526 V586" /></g>
+  <g id="e:stop-task" data-from="stop" data-to="task"><path class="edge" d="M330 658 V718" /></g>
+  <g id="n:need" data-kind="node"><polygon class="node" points="330,30 440,82 330,134 220,82" fill="#e7e9f5" /><text class="node-label" style="font-size:25px" x="330" y="82">Need recall?</text></g>
+  <g id="n:search" data-kind="node"><rect class="node" x="220" y="190" width="220" height="72" rx="13" fill="#dce9f8" /><text class="node-label" style="font-size:26px" x="330" y="226">Search history</text></g>
+  <g id="n:preview" data-kind="node"><rect class="node" x="220" y="322" width="220" height="72" rx="13" fill="#dce9f8" /><text class="node-label" style="font-size:26px" x="330" y="358">Review preview</text></g>
+  <g id="n:read" data-kind="node"><rect class="node" x="220" y="454" width="220" height="72" rx="13" fill="#dce9f8" /><text class="node-label" style="font-size:24px" x="330" y="490"><tspan x="330" y="477.52">Read original</tspan><tspan x="330" y="502.48">text</tspan></text></g>
+  <g id="n:stop" data-kind="node"><rect class="node" x="220" y="586" width="220" height="72" rx="13" fill="#f9e9d8" /><text class="node-label" style="font-size:26px" x="330" y="622">End recall</text></g>
+  <g id="n:task" data-kind="node"><rect class="node" x="220" y="718" width="220" height="72" rx="13" fill="#dfefe3" /><text class="node-label" style="font-size:26px" x="330" y="754">Continue task</text></g>
+  <g aria-label="Yes"><rect x="341" y="148" width="36" height="28" rx="6" fill="#ffffff" /><text class="edge-label" x="359" y="162">Yes</text></g>
+  <g aria-label="No"><rect x="512" y="52" width="36" height="28" rx="6" fill="#ffffff" /><text class="edge-label" x="530" y="66">No</text></g>
+  <g aria-label="Preview"><rect x="353.5" y="278" width="93" height="28" rx="6" fill="#ffffff" /><text class="edge-label" x="400" y="292">Preview</text></g>
+  <g aria-label="Enough"><rect x="538.5" y="414" width="93" height="28" rx="6" fill="#ffffff" /><text class="edge-label" x="585" y="428">Enough</text></g>
+  <g aria-label="Expand / continue"><rect x="343" y="400.64" width="104" height="46.72" rx="6" fill="#ffffff" /><text class="edge-label" x="395" y="424"><tspan x="395" y="414.64">Expand /</tspan><tspan x="395" y="433.36">continue</tspan></text></g>
+  <g aria-label="Insufficient information"><rect x="105" y="268.64" width="110" height="46.72" rx="6" fill="#ffffff" /><text class="edge-label" x="160" y="292"><tspan x="160" y="282.64">Insufficient</tspan><tspan x="160" y="301.36">information</tspan></text></g>
+  <g aria-label="Insufficient information"><rect x="35" y="404.64" width="110" height="46.72" rx="6" fill="#ffffff" /><text class="edge-label" x="90" y="428"><tspan x="90" y="418.64">Insufficient</tspan><tspan x="90" y="437.36">information</tspan></text></g>
+  <g aria-label="No leads / limit reached"><rect x="429" y="532.64" width="142" height="46.72" rx="6" fill="#ffffff" /><text class="edge-label" x="500" y="556"><tspan x="500" y="546.64">No leads /</tspan><tspan x="500" y="565.36">limit reached</tspan></text></g>
+  <g aria-label="Reading complete"><rect x="223.5" y="532.64" width="93" height="46.72" rx="6" fill="#ffffff" /><text class="edge-label" x="270" y="556"><tspan x="270" y="546.64">Reading</tspan><tspan x="270" y="565.36">complete</tspan></text></g>
+</svg>

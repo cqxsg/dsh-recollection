@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="825" viewBox="0 0 1320 825" role="img" aria-labelledby="diagram-title">
+  <title id="diagram-title">结果与状态管理</title>
+  <desc>Agent 发起回想并接收结果；执行时校验来源，调用额度、原文定位和续读位置分别持久保存。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10.5" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L10.5 6 L1 11 Z" fill="#566678"/>
+    </marker>
+  </defs>
+  <style>
+    .region { fill:#f4f6f8; stroke:#8d9ba8; stroke-width:2.8; }
+    .region.no-border { stroke:none; }
+    .region-label { font:700 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; fill:#273848; }
+    .node { stroke:#58697a; stroke-width:2.9; }
+    .node-label { fill:#263544; font:570 26px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+    .edge { fill:none; stroke:#566678; stroke-width:3.25; stroke-linecap:round; stroke-linejoin:round; marker-end:url(#arrow); }
+    .edge.control { stroke:#8393a2; stroke-dasharray:8 8; }
+    .edge-label { fill:#465464; font:520 19px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1320" height="825" fill="#ffffff"/>
+  <g id="c:execution" data-kind="container"><rect class="region" x="25" y="125" width="1270" height="340" rx="17"/><text class="region-label" x="47" y="166">请求执行</text></g>
+  <g id="c:state" data-kind="container"><rect class="region" x="25" y="495" width="1270" height="300" rx="17"/><text class="region-label" x="47" y="536">状态管理</text></g>
+  <g id="boundary-ports" aria-hidden="true">
+    <rect x="211" y="118" width="18" height="7" fill="#ffffff"/>
+    <rect x="211" y="125" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="1091" y="118" width="18" height="7" fill="#ffffff"/>
+    <rect x="1091" y="125" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="211" y="458" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="211" y="465" width="18" height="7" fill="#ffffff"/>
+    <rect x="651" y="458" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="651" y="465" width="18" height="7" fill="#ffffff"/>
+    <rect x="811" y="458" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="811" y="465" width="18" height="7" fill="#ffffff"/>
+    <rect x="921" y="458" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="921" y="465" width="18" height="7" fill="#ffffff"/>
+    <rect x="211" y="488" width="18" height="7" fill="#ffffff"/>
+    <rect x="211" y="495" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="651" y="488" width="18" height="7" fill="#ffffff"/>
+    <rect x="651" y="495" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="811" y="488" width="18" height="7" fill="#ffffff"/>
+    <rect x="811" y="495" width="18" height="7" fill="#f4f6f8"/>
+    <rect x="921" y="488" width="18" height="7" fill="#ffffff"/>
+    <rect x="921" y="495" width="18" height="7" fill="#f4f6f8"/>
+  </g>
+  <g id="e:agent-admission" data-from="agent" data-to="admission"><path class="edge" d="M550 61 H220 V200"/></g>
+  <g id="e:admission-engine" data-from="admission" data-to="engine"><path class="edge" d="M330 236 H550"/></g>
+  <g id="e:engine-result" data-from="engine" data-to="result"><path class="edge" d="M770 236 H990"/></g>
+  <g id="e:result-agent" data-from="result" data-to="agent"><path class="edge" d="M1100 200 V61 H770"/></g>
+  <g id="e:admission-quota" data-from="admission" data-to="quota"><path class="edge" d="M220 272 V565" marker-start="url(#arrow)"/></g>
+  <g id="e:source-engine" data-from="source" data-to="engine"><path class="edge" d="M660 350 V272" marker-start="url(#arrow)"/></g>
+  <g id="e:history-source" data-from="history" data-to="source"><path class="edge" d="M510 386 H550"/></g>
+  <g id="e:location-source" data-from="location" data-to="source"><path class="edge" d="M660 565 V422"/></g>
+  <g id="e:engine-location" data-from="engine" data-to="location"><path class="edge" d="M710 272 V310 H820 V601 H770" marker-start="url(#arrow)"/></g>
+  <g id="e:engine-continuation" data-from="engine" data-to="continuation"><path class="edge" d="M750 272 V290 H930 V601 H990" marker-start="url(#arrow)"/></g>
+  <g id="e:quota-storage" data-from="quota" data-to="storage"><path class="edge" d="M220 637 V731 H550" marker-start="url(#arrow)"/></g>
+  <g id="e:location-storage" data-from="location" data-to="storage"><path class="edge" d="M660 637 V695" marker-start="url(#arrow)"/></g>
+  <g id="e:continuation-storage" data-from="continuation" data-to="storage"><path class="edge" d="M1100 637 V731 H770" marker-start="url(#arrow)"/></g>
+  <g id="n:agent" data-kind="node"><rect class="node" x="550" y="25" width="220" height="72" rx="13" fill="#ffffff"/><text class="node-label" style="font-size:26px" x="660" y="62">DSH Agent</text></g>
+  <g id="n:admission" data-kind="node"><rect class="node" x="110" y="200" width="220" height="72" rx="13" fill="#dfefe3"/><text class="node-label" style="font-size:26px" x="220" y="237">调用控制</text></g>
+  <g id="n:engine" data-kind="node"><rect class="node" x="550" y="200" width="220" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="660" y="237">搜索与读取</text></g>
+  <g id="n:result" data-kind="node"><rect class="node" x="990" y="200" width="220" height="72" rx="13" fill="#e7e9f5"/><text class="node-label" style="font-size:26px" x="1100" y="237">回想结果</text></g>
+  <g id="n:history" data-kind="node"><rect class="node" x="290" y="350" width="220" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="400" y="387">原始历史</text></g>
+  <g id="n:source" data-kind="node"><rect class="node" x="550" y="350" width="220" height="72" rx="13" fill="#dce9f8"/><text class="node-label" style="font-size:26px" x="660" y="387">来源校验</text></g>
+  <g id="n:quota" data-kind="node"><rect class="node" x="110" y="565" width="220" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="220" y="602">调用额度</text></g>
+  <g id="n:location" data-kind="node"><rect class="node" x="550" y="565" width="220" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="660" y="602">原文定位</text></g>
+  <g id="n:continuation" data-kind="node"><rect class="node" x="990" y="565" width="220" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="1100" y="602">续读位置</text></g>
+  <g id="n:storage" data-kind="node"><rect class="node" x="550" y="695" width="220" height="72" rx="13" fill="#f9e9d8"/><text class="node-label" style="font-size:26px" x="660" y="732">持久存储</text></g>
+</svg>

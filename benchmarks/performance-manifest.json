@@ -1,0 +1,529 @@
+{
+  "version": "dsh-performance-corpus-v1",
+  "seed": 1592639710,
+  "scales": [
+    128,
+    512,
+    2048,
+    5000,
+    10000
+  ],
+  "queries": [
+    {
+      "id": "literal-none",
+      "family": "literal-word",
+      "rate": "none",
+      "mode": "literal",
+      "patterns": [
+        "DshAbsentAlpha"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    },
+    {
+      "id": "or-none",
+      "family": "literal-or",
+      "rate": "none",
+      "mode": "literal",
+      "patterns": [
+        "DshAbsentAlpha",
+        "通用Absent甲标"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "unicode-none",
+      "family": "unicode-case",
+      "rate": "none",
+      "mode": "literal",
+      "patterns": [
+        "DSHABSENTALPHA",
+        "通用Absent甲标"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "anchor-none",
+      "family": "regex-anchor",
+      "rate": "none",
+      "mode": "regex",
+      "patterns": [
+        "(?m)^ANCHOR_ABSENT_\\d+$"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "multiline-none",
+      "family": "regex-multiline",
+      "rate": "none",
+      "mode": "regex",
+      "patterns": [
+        "ANCHOR_ABSENT_\\d+\\nTAIL_ABSENT_\\d+"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    },
+    {
+      "id": "literal-sparse",
+      "family": "literal-word",
+      "rate": "sparse",
+      "mode": "literal",
+      "patterns": [
+        "DshSparseAlpha"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    },
+    {
+      "id": "or-sparse",
+      "family": "literal-or",
+      "rate": "sparse",
+      "mode": "literal",
+      "patterns": [
+        "DshSparseAlpha",
+        "通用Sparse甲标"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "unicode-sparse",
+      "family": "unicode-case",
+      "rate": "sparse",
+      "mode": "literal",
+      "patterns": [
+        "DSHSPARSEALPHA",
+        "通用Sparse甲标"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "anchor-sparse",
+      "family": "regex-anchor",
+      "rate": "sparse",
+      "mode": "regex",
+      "patterns": [
+        "(?m)^ANCHOR_SPARSE_\\d+$"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "multiline-sparse",
+      "family": "regex-multiline",
+      "rate": "sparse",
+      "mode": "regex",
+      "patterns": [
+        "ANCHOR_SPARSE_\\d+\\nTAIL_SPARSE_\\d+"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    },
+    {
+      "id": "literal-all",
+      "family": "literal-word",
+      "rate": "all",
+      "mode": "literal",
+      "patterns": [
+        "DshAllAlpha"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    },
+    {
+      "id": "or-all",
+      "family": "literal-or",
+      "rate": "all",
+      "mode": "literal",
+      "patterns": [
+        "DshAllAlpha",
+        "通用All甲标"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "unicode-all",
+      "family": "unicode-case",
+      "rate": "all",
+      "mode": "literal",
+      "patterns": [
+        "DSHALLALPHA",
+        "通用All甲标"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "anchor-all",
+      "family": "regex-anchor",
+      "rate": "all",
+      "mode": "regex",
+      "patterns": [
+        "(?m)^ANCHOR_ALL_\\d+$"
+      ],
+      "case_sensitive": true
+    },
+    {
+      "id": "multiline-all",
+      "family": "regex-multiline",
+      "rate": "all",
+      "mode": "regex",
+      "patterns": [
+        "ANCHOR_ALL_\\d+\\nTAIL_ALL_\\d+"
+      ],
+      "case_sensitive": true,
+      "primary": true
+    }
+  ],
+  "legacyQueries": [
+    {
+      "id": "legacy-cold",
+      "mode": "literal",
+      "patterns": [
+        "benchmark-hit"
+      ],
+      "rate": "cold",
+      "case_sensitive": false
+    },
+    {
+      "id": "legacy-hot",
+      "mode": "literal",
+      "patterns": [
+        "needle"
+      ],
+      "rate": "cold",
+      "case_sensitive": false
+    }
+  ],
+  "boundaryQueries": [
+    {
+      "id": "metadata-all",
+      "mode": "literal",
+      "patterns": [
+        "META_SCOPE_ALL"
+      ],
+      "rate": "metadata-all",
+      "case_sensitive": true
+    },
+    {
+      "id": "metadata-sparse",
+      "mode": "literal",
+      "patterns": [
+        "META_SCOPE_SPARSE"
+      ],
+      "rate": "metadata-sparse",
+      "case_sensitive": true
+    },
+    {
+      "id": "metadata-none",
+      "mode": "literal",
+      "patterns": [
+        "META_SCOPE_ABSENT"
+      ],
+      "rate": "none",
+      "case_sensitive": true
+    },
+    {
+      "id": "cross-field",
+      "mode": "regex",
+      "patterns": [
+        "LEFT_EDGE[\\s\\S]*RIGHT_EDGE"
+      ],
+      "rate": "none",
+      "case_sensitive": true
+    },
+    {
+      "id": "cross-record",
+      "mode": "regex",
+      "patterns": [
+        "END_RECORD[\\s\\S]*START_RECORD"
+      ],
+      "rate": "none",
+      "case_sensitive": true
+    }
+  ],
+  "stress": [
+    {
+      "id": "long-1mib",
+      "bytes": 1048576,
+      "pattern": "LEFT[\\s\\S]*RIGHT",
+      "expectedSpans": 1
+    },
+    {
+      "id": "long-8mib",
+      "bytes": 8388608,
+      "pattern": "LEFT[\\s\\S]*RIGHT",
+      "expectedSpans": 1
+    },
+    {
+      "id": "long-32mib",
+      "bytes": 33554432,
+      "pattern": "LEFT[\\s\\S]*RIGHT",
+      "expectedSpans": 1
+    },
+    {
+      "id": "dense-million",
+      "bytes": 2000000,
+      "pattern": "x",
+      "expectedSpans": 1000000
+    },
+    {
+      "id": "zero-width",
+      "bytes": 4096,
+      "pattern": "(?m)^",
+      "pressure": "zero-width"
+    },
+    {
+      "id": "repeated-pattern",
+      "patterns": [
+        "needle",
+        "needle"
+      ],
+      "pressure": "OR identity"
+    },
+    {
+      "id": "invalid",
+      "patterns": [
+        "valid",
+        "["
+      ],
+      "expectedError": "invalid_pattern"
+    },
+    {
+      "id": "unsupported",
+      "patterns": [
+        "(?<=a)b"
+      ],
+      "expectedError": "invalid_pattern"
+    }
+  ],
+  "data": [
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "legacy",
+      "seed": 1592639710,
+      "count": 128,
+      "logicalBytes": 267670,
+      "metadataBytes": 0,
+      "meanBodyBytes": 2091.171875,
+      "sourceDigest": "aa99bbe625aadfcef298a1c3acef99c3191c08e56acd422b094dfb8455923423",
+      "expectedHits": {
+        "legacy-cold": 1,
+        "legacy-hot": 1
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "legacy",
+      "seed": 1592639710,
+      "count": 512,
+      "logicalBytes": 1070998,
+      "metadataBytes": 0,
+      "meanBodyBytes": 2091.79296875,
+      "sourceDigest": "db09292dc986a589cc00b3902dbf5d181b7143e929fe18331425bf12500e3f4b",
+      "expectedHits": {
+        "legacy-cold": 1,
+        "legacy-hot": 1
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "legacy",
+      "seed": 1592639710,
+      "count": 2048,
+      "logicalBytes": 4285358,
+      "metadataBytes": 0,
+      "meanBodyBytes": 2092.4599609375,
+      "sourceDigest": "af7ad264b9df06e1e727d5dd3f774751d398e8a1280ee3fa3f1f02eff45f7254",
+      "expectedHits": {
+        "legacy-cold": 1,
+        "legacy-hot": 1
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "legacy",
+      "seed": 1592639710,
+      "count": 5000,
+      "logicalBytes": 10463894,
+      "metadataBytes": 0,
+      "meanBodyBytes": 2092.7788,
+      "sourceDigest": "95a4ceda03ab944070db3bfbacccb8b17a50aa378abc1295039e368d26f56529",
+      "expectedHits": {
+        "legacy-cold": 1,
+        "legacy-hot": 1
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "legacy",
+      "seed": 1592639710,
+      "count": 10000,
+      "logicalBytes": 20928894,
+      "metadataBytes": 0,
+      "meanBodyBytes": 2092.8894,
+      "sourceDigest": "77de9f944d1a5566ee8772334b03e4f531d17fa4e0dd6012aeda90fd355df332",
+      "expectedHits": {
+        "legacy-cold": 1,
+        "legacy-hot": 1
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "mixed",
+      "seed": 1592639710,
+      "count": 128,
+      "logicalBytes": 259584,
+      "metadataBytes": 2300,
+      "meanBodyBytes": 2028,
+      "sourceDigest": "6f712ce7c56754186734a178d49af0a41c0946bb716a1e6451b5919c15e6b104",
+      "expectedHits": {
+        "literal-none": 0,
+        "or-none": 0,
+        "unicode-none": 0,
+        "anchor-none": 0,
+        "multiline-none": 0,
+        "literal-sparse": 2,
+        "or-sparse": 2,
+        "unicode-sparse": 2,
+        "anchor-sparse": 2,
+        "multiline-sparse": 2,
+        "literal-all": 128,
+        "or-all": 128,
+        "unicode-all": 128,
+        "anchor-all": 128,
+        "multiline-all": 128,
+        "metadata-all": 13,
+        "metadata-sparse": 2,
+        "metadata-none": 0,
+        "cross-field": 0,
+        "cross-record": 0
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "mixed",
+      "seed": 1592639710,
+      "count": 512,
+      "logicalBytes": 1046016,
+      "metadataBytes": 9197,
+      "meanBodyBytes": 2043,
+      "sourceDigest": "d9885ea528b27e23d1f59698eb3a54b2ce434fc45e0071cb6b92788b0cbba548",
+      "expectedHits": {
+        "literal-none": 0,
+        "or-none": 0,
+        "unicode-none": 0,
+        "anchor-none": 0,
+        "multiline-none": 0,
+        "literal-sparse": 6,
+        "or-sparse": 6,
+        "unicode-sparse": 6,
+        "anchor-sparse": 6,
+        "multiline-sparse": 6,
+        "literal-all": 512,
+        "or-all": 512,
+        "unicode-all": 512,
+        "anchor-all": 512,
+        "multiline-all": 512,
+        "metadata-all": 52,
+        "metadata-sparse": 6,
+        "metadata-none": 0,
+        "cross-field": 0,
+        "cross-record": 0
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "mixed",
+      "seed": 1592639710,
+      "count": 2048,
+      "logicalBytes": 4191744,
+      "metadataBytes": 36347,
+      "meanBodyBytes": 2046.75,
+      "sourceDigest": "bda3267b94b9a73f4bb2ae3c0700423ceb1a4a0b265c27ebb1c720ec78e34043",
+      "expectedHits": {
+        "literal-none": 0,
+        "or-none": 0,
+        "unicode-none": 0,
+        "anchor-none": 0,
+        "multiline-none": 0,
+        "literal-sparse": 21,
+        "or-sparse": 21,
+        "unicode-sparse": 21,
+        "anchor-sparse": 21,
+        "multiline-sparse": 21,
+        "literal-all": 2048,
+        "or-all": 2048,
+        "unicode-all": 2048,
+        "anchor-all": 2048,
+        "multiline-all": 2048,
+        "metadata-all": 205,
+        "metadata-sparse": 21,
+        "metadata-none": 0,
+        "cross-field": 0,
+        "cross-record": 0
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "mixed",
+      "seed": 1592639710,
+      "count": 5000,
+      "logicalBytes": 10237440,
+      "metadataBytes": 88789,
+      "meanBodyBytes": 2047.488,
+      "sourceDigest": "438e48d4e05c9e1441ea544577ef8da78d4ce1c07312dadf15fea3f9c7aa5b1c",
+      "expectedHits": {
+        "literal-none": 0,
+        "or-none": 0,
+        "unicode-none": 0,
+        "anchor-none": 0,
+        "multiline-none": 0,
+        "literal-sparse": 50,
+        "or-sparse": 50,
+        "unicode-sparse": 50,
+        "anchor-sparse": 50,
+        "multiline-sparse": 50,
+        "literal-all": 5000,
+        "or-all": 5000,
+        "unicode-all": 5000,
+        "anchor-all": 5000,
+        "multiline-all": 5000,
+        "metadata-all": 500,
+        "metadata-sparse": 50,
+        "metadata-none": 0,
+        "cross-field": 0,
+        "cross-record": 0
+      }
+    },
+    {
+      "version": "dsh-performance-corpus-v1",
+      "profile": "mixed",
+      "seed": 1592639710,
+      "count": 10000,
+      "logicalBytes": 20477440,
+      "metadataBytes": 177689,
+      "meanBodyBytes": 2047.744,
+      "sourceDigest": "4d680ba9c7e6d5e112843ace1bbc2810f899394f8c642a8d30d99a0b40e9e86a",
+      "expectedHits": {
+        "literal-none": 0,
+        "or-none": 0,
+        "unicode-none": 0,
+        "anchor-none": 0,
+        "multiline-none": 0,
+        "literal-sparse": 100,
+        "or-sparse": 100,
+        "unicode-sparse": 100,
+        "anchor-sparse": 100,
+        "multiline-sparse": 100,
+        "literal-all": 10000,
+        "or-all": 10000,
+        "unicode-all": 10000,
+        "anchor-all": 10000,
+        "multiline-all": 10000,
+        "metadata-all": 1000,
+        "metadata-sparse": 100,
+        "metadata-none": 0,
+        "cross-field": 0,
+        "cross-record": 0
+      }
+    }
+  ]
+}

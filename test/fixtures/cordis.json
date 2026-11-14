@@ -1,0 +1,5 @@
+[
+  { "id": "typert", "name": "@deepseek-ai/dsh-typert-registry" },
+  { "id": "recall", "name": "dsh-recollection", "config": { "enabled": false } },
+  { "id": "modules", "name": "@deepseek-ai/dsh-client-modules" }
+]

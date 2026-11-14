@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="468" viewBox="0 0 1300 468" role="img" aria-labelledby="figure-title">
+  <title id="figure-title">dsh-recollection 总体架构</title>
+  <desc>论文插图风格的 Host、DSH 数据与外部交互总览。各功能类别统一采用柔和填充，不人为强化单独的核心节点。</desc>
+  <defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10.4" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 1 L10.4 6 L1 11 Z" fill="#566678"/></marker></defs>
+  <style>
+    .canvas { fill: #ffffff; }
+    .region { stroke-width: 2.6; }
+    .host-region { fill: #f4f7fa; stroke: #8e9eaf; }
+    .data-region { fill: #faf7f2; stroke: #b8a896; }
+    .region-label { font: 700 27px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; fill: #28394a; }
+    .node { fill: #ffffff; stroke: #607082; stroke-width: 2.8; }
+    .actor { fill: #ffffff; stroke: #77889b; }
+    .core { fill: #dce9f8; }
+    .support-node { fill: #dfefe3; }
+    .state-node { fill: #f9e9d8; }
+    .data-node { fill: #f9e9d8; }
+    .node-label { fill: #253545; font: 570 28.5px 'Noto Sans CJK SC','Microsoft YaHei',sans-serif; text-anchor: middle; dominant-baseline: middle; }
+    .edge { fill: none; stroke: #566678; stroke-width: 3.35; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    .edge.both { marker-start: url(#arrow); }
+    .edge.support { stroke: #82919e; stroke-dasharray: 8 8; }
+  </style>
+  <rect class="canvas" width="1300" height="468"/>
+  <g id="c:host" data-kind="container"><rect class="region host-region" x="230" y="19" width="780" height="430" rx="18"/><text class="region-label" x="260" y="59">Host</text></g>
+  <g id="c:data" data-kind="container"><rect class="region data-region" x="1035" y="19" width="245" height="430" rx="18"/><text class="region-label" x="1053" y="59">DSH 数据</text></g>
+
+  <g id="e:client-prepare" data-from="client" data-to="prepare"><path class="edge" d="M205 138 H262"/></g>
+  <g id="e:agent-recall" data-from="agent" data-to="recall"><path class="edge both" d="M205 265 H525"/></g>
+  <g id="e:prepare-history" data-from="prepare" data-to="history"><path class="edge both" d="M472 138 H1053"/></g>
+  <g id="e:prepare-recall" data-from="prepare" data-to="recall"><path class="edge both" d="M315 171 V208 H629 V232"/></g>
+  <g id="e:recall-history" data-from="recall" data-to="history"><path class="edge both" d="M691 232 V200 H1023 V153 H1053"/></g>
+  <g id="e:recall-attach" data-from="recall" data-to="attach"><path class="edge both" d="M733 265 H780"/></g>
+  <g id="e:attach-files" data-from="attach" data-to="files"><path class="edge both" d="M982 265 H1053"/></g>
+  <g id="e:state-storage" data-from="state" data-to="storage"><path class="edge both" d="M982 392 H1053"/></g>
+  <g id="e:state-recall" data-from="state" data-to="recall"><path class="edge both" d="M780 392 H685 V298"/></g>
+  <g id="e:state-attach" data-from="state" data-to="attach"><path class="edge both" d="M881 359 V298"/></g>
+  <g id="e:resource-prepare" data-from="resource" data-to="prepare"><path class="edge support" d="M430 359 V271" style="marker-end:none"/><path class="edge support" d="M430 259 V171"/></g>
+  <g id="e:resource-recall" data-from="resource" data-to="recall"><path class="edge support" d="M517 392 H573 V298"/></g>
+
+  <g id="n:client" data-kind="node"><rect class="node actor" x="20" y="105" width="185" height="66" rx="13"/><text class="node-label" x="112.5" y="139">Client</text></g>
+  <g id="n:agent" data-kind="node"><rect class="node actor" x="20" y="232" width="185" height="66" rx="13"/><text class="node-label" x="112.5" y="266">DSH Agent</text></g>
+  <g id="n:prepare" data-kind="node"><rect class="node core" x="262" y="105" width="210" height="66" rx="13"/><text class="node-label" x="367" y="139">历史准备</text></g>
+  <g id="n:recall" data-kind="node"><rect class="node core" x="525" y="232" width="208" height="66" rx="13"/><text class="node-label" x="629" y="266">回想工具</text></g>
+  <g id="n:attach" data-kind="node"><rect class="node core" x="780" y="232" width="202" height="66" rx="13"/><text class="node-label" x="881" y="266">附件访问</text></g>
+  <g id="n:resource" data-kind="node"><rect class="node support-node" x="262" y="359" width="255" height="66" rx="13"/><text class="node-label" x="389.5" y="393">调度与资源管理</text></g>
+  <g id="n:state" data-kind="node"><rect class="node state-node" x="780" y="359" width="202" height="66" rx="13"/><text class="node-label" x="881" y="393">持久状态</text></g>
+  <g id="n:history" data-kind="node"><rect class="node data-node" x="1053" y="105" width="209" height="66" rx="13"/><text class="node-label" x="1157.5" y="139">原始历史</text></g>
+  <g id="n:files" data-kind="node"><rect class="node data-node" x="1053" y="232" width="209" height="66" rx="13"/><text class="node-label" x="1157.5" y="266">关联文件</text></g>
+  <g id="n:storage" data-kind="node"><rect class="node data-node" x="1053" y="359" width="209" height="66" rx="13"/><text class="node-label" x="1157.5" y="393">持久存储</text></g>
+</svg>
