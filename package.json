@@ -2,7 +2,7 @@
   "name": "dsh-recollection",
   "version": "0.1.0",
   "license": "Apache-2.0",
-  "description": "Single-session recall plugin for DSH rc.4",
+  "description": "Autonomous conversation recall plugin for DeepSeek Harness",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cqxsg/dsh-recollection.git"
