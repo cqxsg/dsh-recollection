@@ -74,7 +74,7 @@ To evaluate recall after context compaction, we construct extended, multi-turn c
 
 We use DSH's native compaction mechanism, with the compaction threshold set to 100,000 tokens and the most recent 20,000 tokens retained.
 
-After a conversation ends, we fork the same session state into two continuations, with recall disabled in one and enabled in the other. Both inherit the same original history, compaction state, and workspace. They answer the same question about the history using identical model settings, and their answers are compared against a predefined rubric.
+After a conversation ends, we fork the same session state into two continuations, with recall disabled in one and enabled in the other. Both inherit the same original history, compaction state, and workspace. They answer the same question about the history using identical model settings; **the only difference in setup is whether the recall component is enabled**. The test question **does not instruct the model to call recall tools, leaving that choice to the model**. Answers are then compared against a predefined rubric.
 
 ### Dataset
 
@@ -98,14 +98,31 @@ The evaluation dataset currently contains 10 test cases, each with 6 rubric item
 | Missing | 15.0% (9/60) | 0.0% (0/60) |
 | Contradicts the history | 15.0% (9/60) | 1.7% (1/60) |
 
+With recall enabled, **90% of test cases used recall tools**. The mean number of calls per case was **3.8** for `recall_search` and **2.2** for `recall_read`.
+
 ### Performance
 
-The test uses 10,000 synthetic records with an average text body of approximately 2 KB. For reference, records in the dataset currently used to evaluate recall effectiveness have an average text body of 2.24 KB.
+The test uses synthetic records with an average text body of approximately 2 KB. For reference, records in the recall evaluation dataset have an average text body of approximately 2.24 KB. The five test scales contain 128, 512, 2,048, 5,000, and 10,000 records, respectively.
 
-| Metric | Mean | P50 | P95 |
+**History preparation time (seconds)**
+
+| Records | Mean | P50 | P95 |
 |---|---:|---:|---:|
-| History preparation time | 7.96 s | 7.75 s | 8.92 s |
-| Search latency | 2.86 s | 2.82 s | 3.22 s |
+| 128 | 0.041 | 0.043 | 0.053 |
+| 512 | 0.081 | 0.078 | 0.090 |
+| 2,048 | 0.561 | 0.553 | 0.641 |
+| 5,000 | 2.022 | 1.968 | 2.153 |
+| 10,000 | 7.962 | 7.748 | 8.919 |
+
+**Search latency (seconds)**
+
+| Records | Mean | P50 | P95 |
+|---|---:|---:|---:|
+| 128 | 0.493 | 0.476 | 0.569 |
+| 512 | 0.599 | 0.573 | 0.740 |
+| 2,048 | 1.044 | 1.036 | 1.163 |
+| 5,000 | 1.564 | 1.554 | 1.652 |
+| 10,000 | 2.862 | 2.822 | 3.216 |
 
 ## Notes
 
