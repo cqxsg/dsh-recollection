@@ -4,7 +4,7 @@
 
 [Quick start](#quick-start) | [How it works](#how-it-works) | [Evaluation results](#evaluation-results) | [Notes](#notes) | [License](#license)
 
-**Give AI “unlimited” memory—no matter how long the conversation.**
+**Let AI recall every word you've said.**
 
 Proactive recall for DeepSeek Harness. Even when context compaction causes AI to lose earlier details, it can retrieve the information it needs from the original history on its own.
 
