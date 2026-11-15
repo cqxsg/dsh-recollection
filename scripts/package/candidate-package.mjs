@@ -31,7 +31,7 @@ export async function verifyPackage(root, expectedPackage, forbiddenPaths = [], 
     }
   } else {
     assert.notEqual(pkg.private, true, 'Private package cannot be published');
-    assert.equal(pkg.engines.dsh, '>=0.2.1-rc.4 <=0.2.1-rc.5 || >=0.2.2-alpha.3 <=0.2.2-rc.3');
+    assert.equal(pkg.engines.dsh, '>=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0');
     for (const [name, range] of Object.entries(pkg.peerDependencies)) {
       if (isDshPeer(name)) assert.equal(range, pkg.engines.dsh, `DSH peer range differs: ${name}`);
     }

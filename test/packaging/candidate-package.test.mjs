@@ -95,19 +95,32 @@ test('public package accepts portable README links and rejects private or misdir
   }
 });
 
-test('supported DSH releases pass engines and peer fallback while excluded versions are rejected', async () => {
+test('DSH compatibility bounds admit newer releases and reject excluded versions', async () => {
   const pkg = JSON.parse(await readFile(join(project, 'package.json')));
-  const supported = ['0.2.1-rc.4', '0.2.1-rc.5', '0.2.2-alpha.3', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3'];
-  const rejected = ['0.2.1-rc.3', '0.2.1-rc.6', '0.2.1', '0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-rc.4', '0.2.2', '0.3.0-alpha.1', '1.0.0'];
-  for (const [expected, versions] of [[true, supported], [false, rejected]]) {
+  const accepted = [
+    '0.2.1-rc.1', '0.2.1-rc.3', '0.2.1-rc.4', '0.2.1-rc.5', '0.2.1-rc.6', '0.2.1',
+    '0.2.2-alpha.3', '0.2.2-beta.1', '0.2.2-rc.1', '0.2.2-rc.2', '0.2.2-rc.3', '0.2.2-rc.4', '0.2.2', '0.2.3', '0.2.99',
+  ];
+  const rejected = [
+    '0.2.0', '0.2.1-beta.1', '0.2.1-rc.0', '0.2.2-0', '0.2.2-alpha.1', '0.2.2-alpha.2', '0.2.2-alpha.2.1',
+    '0.3.0-0', '0.3.0-alpha.1', '0.3.0-rc.1', '0.3.0', '1.0.0',
+  ];
+  const manifests = [pkg, { ...pkg, engines: { node: pkg.engines.node } }];
+  for (const [expected, versions] of [[true, accepted], [false, rejected]]) {
     for (const version of versions) {
       for (const includePrerelease of [false, true]) {
         assert.equal(satisfies(version, pkg.engines.dsh, { includePrerelease }), expected, `${version} (prereleases=${includePrerelease})`);
       }
-      for (const manifest of [pkg, { ...pkg, engines: { node: pkg.engines.node } }]) {
+      for (const manifest of manifests) {
         assert.equal(evaluatePluginCompatibility(manifest, {}, version) === undefined, expected, version);
       }
     }
+  }
+  // DSH opts into future prereleases; ordinary semver matching excludes new patch tuples.
+  for (const version of ['0.2.3-alpha.1', '0.2.3-rc.1', '0.2.99-rc.1']) {
+    assert.equal(satisfies(version, pkg.engines.dsh), false, version);
+    assert.equal(satisfies(version, pkg.engines.dsh, { includePrerelease: true }), true, version);
+    for (const manifest of manifests) assert.equal(evaluatePluginCompatibility(manifest, {}, version), undefined, version);
   }
   for (const [name, range] of Object.entries(pkg.peerDependencies)) {
     if (isDshPeer(name)) assert.equal(range, pkg.engines.dsh, name);
@@ -153,7 +166,7 @@ test('local compatibility manifest passes the native DSH gate without changing t
   const pkg = createCompatibilityManifest(source, '0.1.1-compat.1');
   assert.deepEqual(source, original);
   assert.deepEqual(pkg.devDependencies, source.devDependencies);
-  assert.equal(evaluatePluginCompatibility(source, {}, '0.2.2-rc.4').exempted, false);
+  assert.equal(evaluatePluginCompatibility(source, {}, '0.3.0-alpha.1').exempted, false);
   for (const version of ['0.0.1', '0.2.1-rc.4', '0.2.2-rc.3', '0.3.0-alpha.1', '1.0.0']) {
     assert.equal(evaluatePluginCompatibility(pkg, {}, version), undefined, version);
     // Also check the peer fallback, so engines.dsh cannot hide a remaining DSH peer pin.

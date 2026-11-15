@@ -124,13 +124,14 @@ dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases
 
 ## 注意事项
 
-- **DSH 兼容性** — 支持并已验证 `0.2.1-rc.4` 至 `0.2.2-rc.3`。`0.2.2-alpha.2` 存在宿主 agent preset 故障，不在支持范围内。
+- **DSH 兼容性** — 支持 `0.2.1-rc.1` 起的 `0.2.x` 版本。
+- **实测版本** — npm / Web 已验证 `0.2.1-rc.4` 至 `0.2.2-rc.3`；Desktop 已验证 `0.2.2-rc.3`。其中 `0.2.2-alpha.2` 存在宿主 agent preset 故障，未正常验证。其余版本尚未逐一验证。
 - **Node.js** — 要求 `24.14.0` 及以上版本，目前已在 `24.14.0` 上验证。
-- **运行平台** — 当前支持 Windows x64；上述版本均通过 npm / Web 验证，`0.2.2-rc.3` 同时通过 Desktop 验证。
+- **运行平台** — 当前支持 Windows x64。
 - **回想范围** — 当前支持本会话内的回想，跨会话回想已列入开发计划。
 - **spill 文件保留** — DSH 会将超长工具输出保存为 spill 文件。为保留后续回想所需的完整输出，`dsh-recollection` 默认通过配置让 DSH 将新生成的 spill 文件保存到 DSH 数据目录下的 `spills` 目录，并关闭自动清理。此设置不会迁移已有的 spill 文件，也无法恢复已经丢失的文件。
 
-### 测试环境
+### 评测环境
 
 - **运行环境**：Windows x64、Node.js 24.14.0、DSH 0.2.1-rc.4
 - **硬件**：AMD Ryzen 7 5800H、16 GB 内存
