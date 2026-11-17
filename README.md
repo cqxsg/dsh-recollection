@@ -11,6 +11,7 @@
 - **自主回想**：AI 自主判断何时需要回顾历史，主动找回缺失的背景与细节，让回想自然融入对话与工作。
 - **原文追溯**：回到原始记录，找回曾经的约定、关键细节和决策依据，还原事情的来龙去脉。
 - **按需取回**：先找到线索，再按需展开细节。从长历史中逐步取回所需信息，减少不必要的上下文占用。
+- **`/recall` 命令**：通过命令显式要求模型回想。使用 `/recall <想要回想的内容>` 指定目标。
 
 ## 快速开始
 
@@ -44,7 +45,7 @@ dsh plugin --profile desktop add "https://github.com/cqxsg/dsh-recollection/rele
 dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
 ```
 
-安装或更新完成后，完整退出并重新启动 DSH 即可使用。插件默认启用，AI 会在需要时自主回想。
+安装或更新完成后，启用插件即可使用；热加载正常启用时无需重启。AI 会在需要时自主回想。
 
 ## 工作原理
 

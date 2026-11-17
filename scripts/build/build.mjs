@@ -48,7 +48,7 @@ const client = await build({
   outfile: 'lib/client.js',
   platform: 'browser',
   format: 'cjs',
-  external: ['@deepseek-ai/cordis', 'zod'],
+  external: ['@deepseek-ai/cordis', 'zod', ...(pkg.dsh.client.external ?? [])],
   metafile: true,
   write: false,
   banner: { js: `window.__ModuleLoader__.load({ id: ${JSON.stringify(pkg.name)}, factory: (require) => {\nvar module = { exports: {} }; var exports = module.exports;` },

@@ -33,7 +33,7 @@ const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8'
 assert.equal(git('status', '--porcelain', '--untracked-files=all', '--', '.'), '', 'Commit project changes before freezing a candidate.');
 const sourceCommit = git('rev-parse', 'HEAD');
 const paths = git('ls-files', '--', '.').split('\n').filter(path =>
-  /^(src\/|locale\/|native\/|scripts\/|benchmarks\/|experiments\/(?:run|freeze-parameters|report-parameters)\.mjs$|experiments\/terminal-bench\/catalog\.py$|support\/|test\/runners\/|test\/runtime\/children\/|test\/reference\/(?:build-reference|native-client)\.mjs$|package(?:-lock)?\.json$|tsconfig(?:\.client)?\.json$|cordis\.patch\.yml$|README\.md$|LICENSE$)/.test(path));
+  /^(src\/|locale\/|native\/|scripts\/|benchmarks\/|experiments\/(?:run|freeze-parameters)\.mjs$|support\/|test\/runners\/|test\/runtime\/children\/|test\/reference\/(?:build-reference|native-client)\.mjs$|package(?:-lock)?\.json$|tsconfig(?:\.client)?\.json$|cordis\.patch\.yml$|README\.md$|LICENSE$)/.test(path));
 const snapshot = async () => Promise.all(paths.map(async path => ({ path, sha256: sha256(await readFile(join(root, path))) })));
 const sources = await snapshot();
 const scratch = await mkdtemp(join(parent, `.building-${pkg.version}-`));

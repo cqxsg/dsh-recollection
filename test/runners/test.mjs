@@ -6,7 +6,7 @@ import { build } from 'esbuild';
 
 await build({
   absWorkingDir: projectRoot,
-  entryPoints: ['src/host/state/pages.ts', 'src/host/runtime/scheduler.ts', 'src/client/observer.ts', 'src/client/reporter.ts'],
+  entryPoints: ['src/host/state/pages.ts', 'src/host/runtime/scheduler.ts', 'src/client/observer.ts', 'src/client/reporter.ts', 'src/client/command-presentation.ts', 'src/host/commands.ts', 'src/host/command-previews.ts'],
   outdir: '.local/test-code', outbase: 'src',
   bundle: true, platform: 'node', format: 'esm', packages: 'external',
 });
@@ -20,6 +20,7 @@ const child = spawn(process.execPath, [
   fileURLToPath(new URL('../state/pages.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../runtime/scheduler.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../client/client.test.mjs', import.meta.url)),
+  fileURLToPath(new URL('../client/command-presentation.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../performance/performance.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../support/checkpoint.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../performance/performance-corpus.test.mjs', import.meta.url)),

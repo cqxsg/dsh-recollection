@@ -1,6 +1,6 @@
 {
   "name": "dsh-recollection",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "description": "Autonomous conversation recall plugin for DeepSeek Harness",
   "repository": {
@@ -66,7 +66,14 @@
       "inject": [
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-api-session-controller",
-        "@deepseek-ai/dsh-client-ui-layout"
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "external": [
+        "react"
       ]
     },
     "bundle": {
@@ -103,11 +110,11 @@
     "test:attachment-lifecycle": "npm run build && node test/runners/test-attachment-lifecycle.mjs",
     "test:performance": "npm run build && node --test test/performance/performance.test.mjs && node test/runners/test-matcher.mjs && node benchmarks/run.mjs --records 8 --diagnostics compare",
     "experiment:performance": "npm run build && node benchmarks/run.mjs --repeats 2",
-    "test:recall": "npm run build && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines",
-    "test:recall:browser": "npm run build && node test/runners/web.mjs --recall-browser",
+    "test:recall": "npm run build && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs",
+    "test:recall:browser": "npm run build && node test/runners/web.mjs --recall-browser && node test/runners/web.mjs --recall-command-browser",
     "test:tools:browser": "npm run build && node test/runners/web.mjs --tools-browser",
     "test:recovery": "npm run build && node test/runners/test-recovery.mjs",
-    "check": "npm test && node test/runners/web.mjs --history && node test/runners/web.mjs --range && node test/runners/web.mjs --records && node test/runners/test-prewarm.mjs && node test/runners/test-runtime-lifecycle.mjs && node test/runners/test-runtime-capabilities.mjs && node test/runners/web.mjs --preparation && node test/runners/web.mjs --scheduling && node test/runners/web.mjs --tools && node test/runners/test-recovery.mjs && node test/runners/web.mjs --protocol && node test/runners/test-reference-store.mjs && node test/runners/test-reference-recovery.mjs && node test/runners/web.mjs --compact-output && node test/runners/web.mjs --reference-pages && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs && node test/runners/web.mjs --delivery && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs && node test/runners/test-matcher.mjs && node test/runners/web.mjs --search && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/web.mjs --attachments && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs && node test/runners/web.mjs --attachment-scheduling && node test/runners/web.mjs --attachment-read && node test/runners/test-attachment-lifecycle.mjs",
+    "check": "npm test && node test/runners/web.mjs --history && node test/runners/web.mjs --range && node test/runners/web.mjs --records && node test/runners/test-prewarm.mjs && node test/runners/test-runtime-lifecycle.mjs && node test/runners/test-runtime-capabilities.mjs && node test/runners/web.mjs --preparation && node test/runners/web.mjs --scheduling && node test/runners/web.mjs --tools && node test/runners/test-recovery.mjs && node test/runners/web.mjs --protocol && node test/runners/test-reference-store.mjs && node test/runners/test-reference-recovery.mjs && node test/runners/web.mjs --compact-output && node test/runners/web.mjs --reference-pages && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs && node test/runners/web.mjs --delivery && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs && node test/runners/test-matcher.mjs && node test/runners/web.mjs --search && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/web.mjs --attachments && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs && node test/runners/web.mjs --attachment-scheduling && node test/runners/web.mjs --attachment-read && node test/runners/test-attachment-lifecycle.mjs && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs && node test/runners/web.mjs --recall-command-browser",
     "dev:web": "npm run build && node scripts/dev/dev-web.mjs",
     "prepack": "npm run build",
     "generate": "node scripts/build/generate-remote.mjs",
@@ -119,13 +126,16 @@
     "test:recall:concurrency": "npm run build && node test/runners/web.mjs --recall-concurrency",
     "test:runtime-lifecycle": "npm run build && node test/runners/test-runtime-lifecycle.mjs",
     "test:runtime-capabilities": "npm run build && node test/runners/test-runtime-capabilities.mjs",
-    "test:reference-recovery": "npm run build && node test/runners/test-reference-recovery.mjs"
+    "test:reference-recovery": "npm run build && node test/runners/test-reference-recovery.mjs",
+    "test:recall:command": "npm run build && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs",
+    "test:recall:command:browser": "npm run build && node test/runners/web.mjs --recall-command-browser"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-attachment": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
-    "@deepseek-ai/dsh-fs": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/cordis": ">=4.0.5 <=4.1.0 || 4.0.6-alpha.2",
     "@deepseek-ai/dsh-agent": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
+    "@deepseek-ai/dsh-attachment": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
+    "@deepseek-ai/dsh-commands": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
+    "@deepseek-ai/dsh-fs": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/dsh-scope": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/dsh-session": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
@@ -140,7 +150,20 @@
     "@deepseek-ai/dsh-typert-protocol": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/dsh-typert-registry": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0",
     "@deepseek-ai/schemastery": ">=3.18.5 <=3.19.0 || 3.18.6-alpha.2",
-    "zod": ">=4.4.3 <=4.6.7"
+    "zod": ">=4.4.3 <=4.6.7",
+    "react": "^18.3.1",
+    "@deepseek-ai/dsh-session-projection": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-commands": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-session-projection": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
@@ -157,6 +180,7 @@
     "@deepseek-ai/dsh-client-modules": "0.2.1-rc.4",
     "@deepseek-ai/dsh-client-store": "0.2.1-rc.4",
     "@deepseek-ai/dsh-client-ui-layout": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-commands": "0.2.1-rc.4",
     "@deepseek-ai/dsh-fs": "0.2.1-rc.4",
     "@deepseek-ai/dsh-home-paths": "0.2.1-rc.4",
     "@deepseek-ai/dsh-llm": "0.2.1-rc.4",
@@ -176,10 +200,13 @@
     "@deepseek-ai/dsh-typert-registry": "0.2.1-rc.4",
     "@deepseek-ai/schemastery": "3.18.5",
     "@types/node": "24.10.0",
+    "@types/react": "18.3.31",
     "esbuild": "0.25.12",
     "playwright-core": "1.56.1",
+    "react": "18.3.1",
     "typescript": "6.0.3",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "@deepseek-ai/dsh-session-projection": "0.2.1-rc.4"
   },
   "os": [
     "win32"

@@ -24,7 +24,13 @@ export function scriptedModel(ctx) {
       const reply = replyIndex >= 0 ? replies.splice(replyIndex, 1)[0] : undefined;
       assert.ok(reply, 'unexpected extra model request');
       if (reply.error) { yield { type: 'finish', reason: { kind: 'error', failure: { code: 'NETWORK', message: 'Injected provider retry' } } }; return; }
-      for (const [index, spec] of (reply.calls ?? []).entries()) {
+      if (reply.text) {
+        yield { type: 'block-start', index: 0, blockType: 'text' };
+        yield { type: 'text-delta', index: 0, text: reply.text };
+        yield { type: 'block-end', index: 0, block: { type: 'text', text: reply.text } };
+      }
+      for (const [offset, spec] of (reply.calls ?? []).entries()) {
+        const index = offset + (reply.text ? 1 : 0);
         const callId = typeof spec === 'string' ? spec : spec.id;
         const block = { type: 'tool-call', id: callId, name: typeof spec === 'string' ? reply.name ?? DIAGNOSTIC_TOOL_NAME : spec.name,
           arguments: typeof spec === 'string' ? reply.args ?? '{}' : typeof spec.args === 'string' ? spec.args : JSON.stringify(spec.args ?? {}) };

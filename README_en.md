@@ -11,6 +11,7 @@ Proactive recall for DeepSeek Harness. Even when context compaction causes AI to
 - **Autonomous recall**: AI decides when to revisit history and retrieves missing context and details, making recall a natural part of conversations and work.
 - **Original records**: Revisit earlier agreements, key details, and the rationale behind decisions in their original conversational context.
 - **On-demand retrieval**: Find relevant records first, then expand only what you need to keep context usage low.
+- **`/recall` command**: Explicitly ask the model to recall history. Use `/recall <what you want to recall>` to specify a target.
 
 ## Quick start
 
@@ -44,7 +45,7 @@ dsh plugin --profile desktop add "https://github.com/cqxsg/dsh-recollection/rele
 dsh plugin --profile web add "https://github.com/cqxsg/dsh-recollection/releases/latest/download/dsh-recollection.tgz"
 ```
 
-Fully quit and restart DSH after installing or updating. The plugin is enabled by default, and AI will recall information when needed.
+After installing or updating, enable the plugin to start using it. No restart is needed when hot reload is active. AI will recall information when needed.
 
 ## How it works
 

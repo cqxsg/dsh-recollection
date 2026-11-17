@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 // One option definition for the parent launcher and the isolated child.
 export function readWebOptions(args) {
+  const commandBrowser = args.includes('--recall-command-browser');
   const browser = args.includes('--browser');
   const history = args.includes('--history');
   const range = args.includes('--range');
@@ -28,8 +29,8 @@ export function readWebOptions(args) {
   const concurrency = args.includes('--recall-concurrency');
   const deadlines = args.includes('--recall-deadlines');
   const tools = args.includes('--tools') || toolsBrowser;
-  const smoke = args.includes('--smoke') || browser || history || range || records || preparation || scheduling || tools || protocol || cursors || referencePages || compactOutput || delivery || budget || search || read || recall || recallReview || concurrency || deadlines || attachments || hashes || attachmentScheduling || attachmentRead;
-  return { browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools, smoke };
+  const smoke = args.includes('--smoke') || commandBrowser || browser || history || range || records || preparation || scheduling || tools || protocol || cursors || referencePages || compactOutput || delivery || budget || search || read || recall || recallReview || concurrency || deadlines || attachments || hashes || attachmentScheduling || attachmentRead;
+  return { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools, smoke };
 }
 
 export function webLabel(options) {
@@ -38,19 +39,20 @@ export function webLabel(options) {
 }
 
 export function webPatch(options) {
-  const { browser, toolsBrowser, delivery, budget, search, read, attachments, hashes, attachmentScheduling, recallBrowser, recall, tools, smoke } = options;
+  const { commandBrowser, browser, toolsBrowser, delivery, budget, search, read, attachments, hashes, attachmentScheduling, recallBrowser, recall, tools, smoke } = options;
   return [
     ...(delivery ? [{ id: 'compaction-basic', disabled: false, config: { thresholdRatio: 20000 / 131072, retainTokens: 1024 } }, { id: 'tool-result-pruner', disabled: false }] : []),
     ...(smoke ? [{ id: 'web-runtime', config: { openBrowser: false, printUrl: false, surfaceContext: true } }] : []),
     { insert: [{ id: 'recall', name: new URL('../../lib/index.js', import.meta.url).href, config: { diagnostics: tools, enabled: !(budget || search || read || hashes || attachments || attachmentScheduling) } }] },
-    ...(browser || toolsBrowser || recallBrowser ? [{ insert: [{ id: 'recall-test-probe', name: new URL('../fixtures/browser-probe/index.mjs', import.meta.url).href }] }] : []),
+    ...(browser || toolsBrowser || recallBrowser || commandBrowser ? [{ insert: [{ id: 'recall-test-probe', name: new URL('../fixtures/browser-probe/index.mjs', import.meta.url).href }] }] : []),
   ];
 }
 
 export function webArguments(options) {
-  const { browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools, smoke } = options;
+  const { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools, smoke } = options;
   return [
     ...(smoke ? ['--smoke'] : []),
+    ...(commandBrowser ? ['--recall-command-browser'] : []),
     ...(browser ? ['--browser'] : []),
     ...(history ? ['--history'] : []),
     ...(range ? ['--range'] : []),
@@ -80,12 +82,12 @@ export function webArguments(options) {
 }
 
 export function webTimeout(options) {
-  const { browser, history, range, records, preparation, scheduling, toolsBrowser, cursors, referencePages, compactOutput, delivery, budget, search, read, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
-  return concurrency ? 240_000 : browser || recallBrowser || recallReview || attachmentRead || cursors || referencePages || compactOutput || delivery ? 180_000 : toolsBrowser || recall || deadlines ? 120_000 : history || range || records || preparation || scheduling || tools || budget || search || read ? 90_000 : 45_000;
+  const { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, cursors, referencePages, compactOutput, delivery, budget, search, read, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
+  return commandBrowser ? 240_000 : concurrency ? 240_000 : browser || recallBrowser || recallReview || attachmentRead || cursors || referencePages || compactOutput || delivery ? 180_000 : toolsBrowser || recall || deadlines ? 120_000 : history || range || records || preparation || scheduling || tools || budget || search || read ? 90_000 : 45_000;
 }
 
 export async function verifyWebScenarios(runtime, options) {
-  const { browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
+  const { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
   const { DIAGNOSTIC_TOOL_NAME } = await import('../../lib/index.js');
   const { ctx } = runtime;
   assert.equal(ctx.recallPages.status.implementation, 'phase-5-evaluation');
@@ -200,6 +202,10 @@ export async function verifyWebScenarios(runtime, options) {
   if (recall) {
     const { verifyRecall } = await import('../integration/recall-native.mjs');
     await verifyRecall(ctx, recallBrowser ? base : undefined);
+  }
+  if (commandBrowser) {
+    const { verifyRecallCommandBrowser } = await import('../client/recall-command-browser.mjs');
+    await verifyRecallCommandBrowser(ctx, base);
   }
   if (recallReview) {
     const { verifyRecallReviewSuite } = await import('../integration/recall-review-native.mjs');

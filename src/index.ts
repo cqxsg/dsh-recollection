@@ -9,6 +9,8 @@ import { RecallBudgetService } from './host/state/budget.js';
 import { RecallCursorStore } from './host/state/cursors.js';
 import { RecallReferenceStore } from './host/state/reference-store.js';
 import { RecallToolsService } from './host/tools.js';
+import * as recallCommands from './host/commands.js';
+import * as commandPreviews from './host/command-previews.js';
 import { loadRecallConfig, MAX_TIMER_MS } from './host/runtime/config.js';
 import { RecallHashLedger } from './host/attachments/hash-ledger.js';
 import { RecallAttachmentService } from './host/attachments/attachment-service.js';
@@ -82,6 +84,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     const failed = (error: unknown) => ctx.logger.warn('Recall %s unavailable: %s', name, error instanceof Error ? error.message : String(error));
     try { void Promise.resolve(mount()).catch(failed); } catch (error) { failed(error); }
   };
+  if (config.enabled) {
+    if (!ctx.get('commands')) ctx.logger.warn('Recall command unavailable: commands service is absent; registration will wait for it.');
+    optional('command', () => ctx.plugin(recallCommands));
+  }
+  // Retain display metadata for existing history even when new recall is disabled.
+  optional('command previews', () => ctx.plugin(commandPreviews));
   if (config.enabled && config.attachmentHashing) {
     optional('attachment hashing', () => ctx.plugin(RecallHashLedger, options));
     optional('attachment admission', () => ctx.plugin(RecallAttachmentService));

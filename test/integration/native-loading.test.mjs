@@ -3,11 +3,23 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
+import { registerHooks } from 'node:module';
 import { boot } from '@deepseek-ai/dsh-app-boot';
 import { resolveDshHome, resolveAgentsHome } from '@deepseek-ai/dsh-home-paths';
 
 const root = projectRoot;
 const pkg = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
+
+test('core import does not resolve the optional commands package', async () => {
+  const url = new URL('../../lib/index.js?command-package-absent', import.meta.url).href;
+  const hooks = registerHooks({ resolve(specifier, context, next) {
+    if (context.parentURL === url && specifier === '@deepseek-ai/dsh-commands') throw new Error('Core requires the optional commands package');
+    return next(specifier, context);
+  } });
+  try { assert.equal(typeof (await import(url)).apply, 'function'); } finally { hooks.deregister(); }
+  assert.equal(pkg.peerDependenciesMeta['@deepseek-ai/dsh-commands'].optional, true);
+  assert.equal(pkg.devDependencies['@deepseek-ai/dsh-commands'], '0.2.1-rc.4');
+});
 
 test('rc.4 dependency baseline and isolated data roots', async () => {
   const lock = JSON.parse(await readFile(join(root, 'package-lock.json'), 'utf8'));
