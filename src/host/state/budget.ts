@@ -2,7 +2,7 @@ import { Service, type Context } from '@deepseek-ai/cordis';
 import { defineDomain, domainTable, type KvTable } from '@deepseek-ai/dsh-storage-domain';
 import type { ToolExecution } from '@deepseek-ai/dsh-tools';
 import { z } from 'zod';
-import { resolveCallIdentity, nativeInvalidFeedback, type CallIdentity, type InteractionIdentity } from '../runtime/identity.js';
+import { missingPriorBudget, resolveCallIdentity, nativeInvalidFeedback, type CallIdentity, type InteractionIdentity } from '../runtime/identity.js';
 import { interactionKey } from './ledger.js';
 import { RecallError, type BudgetSummary } from '../protocol.js';
 import type { RecallConfig } from '../runtime/config.js';
@@ -112,7 +112,7 @@ export class RecallBudgetService extends Service {
     await this.serial(key, async () => {
       timeline.check();
       const prior = this.table.get(key);
-      if (!prior && hasSettledCalls) throw new RecallError('ledger_missing', 'Prior native recall calls have no authoritative budget for this interaction.');
+      if (!prior && hasSettledCalls) throw new RecallError('ledger_missing', missingPriorBudget);
       const r: BusinessLedgerRecord = prior ? structuredClone(prior) : {
         ...interaction, version: 1, revision: 0, limits: { searches: this.config.searches, shared: this.config.shared, freePages: this.config.freePages, paidPages: this.config.paidPages },
         searches: this.config.searches, shared: this.config.shared, paidPages: 0, actualCalls: 0, closed: false, queries: [], calls: [], invalid: [],

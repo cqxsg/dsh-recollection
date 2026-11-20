@@ -16,13 +16,13 @@ export async function verifyAttachmentRead(ctx) {
   const check = async (name, fn) => { await fn(); cases.push(name); console.log(`PASS: ${name}`); };
   const file = await ctx.attachments.saveFile({ data: Buffer.from('archived document bytes'), name: 'source.docx' });
   const image = await ctx.attachments.saveImage({ data: fixturePng(), mediaType: 'image/png' });
-  const seed = async (id, content, sample = false, spill) => {
+  const seed = async (id, content, sample = false, spill, source) => {
     if (!sample) { await ctx.recallAttachments.idleAdmissions(); await [...ctx.registry.get(RecallAttachmentService).fibers].find(f => f.state === 2).dispose(); }
     const f = await createHistoryFixture(ctx, id, []);
     const r = rangeFixture(f.session);
     r.append('turn/start', { turn: 1 }); r.append('step/start', { turn: 1, step: 1 });
     r.append('system/message', { turn: 1, step: 1, message: { id: `${id}-sys`, role: 'system', source: { kind: 'system-prompt' }, content: [text('fixture system')] } }, { surfaceOp: 'append' });
-    r.user(content);
+    r.user(content, source);
     if (spill) { const call = r.callBlock(`${id}-call`, 'example', '{}'); r.assistant([call], 1, 1); const log = r.callLog(call, 1, 1); r.result(call, log, [text(`needle saved preview\n\n${formatSpillNotice({ kind: 'exact', count: 200 }, spill)}`)], 1, 1); }
     r.append('step/end', { turn: 1, step: 1 }); r.append('turn/end', { turn: 1, reason: { kind: 'completed' } });
     const groups = [[]];
@@ -39,6 +39,18 @@ export async function verifyAttachmentRead(ctx) {
   const request = (item, target = 'attachments', attachments = item.attachments.map(a => a.ref)) => ({ action: 'read', ref: item.ref, target, attachments });
   const findAll = async agent => { let page = (await h.search(agent)).value; assert.equal(page.status, 'ok'); const items = [...page.items]; while (page.nextCursor) { page = (await h.next(agent, page.nextCursor)).value; assert.equal(page.status, 'ok'); items.push(...page.items); } return items; };
   try {
+    await check('command argument file refs retain the baseline recorded at the original native message offset', async () => {
+      const target = 'needle @command-file.txt', path = join(process.cwd(), 'command-file.txt');
+      await writeFile(path, 'original bytes');
+      const agent = await seed('command-path-baseline', [text(`Recall the target:\n${target}\nFollow instructions.`)], true, undefined,
+        { kind: 'user', dshRecollection: { type: 'recall', userInput: target } });
+      const row = ctx.recallHashes.records().find(r => r.source.sessionId === agent.id);
+      const item = (await h.search(agent)).value.items[0];
+      assert.equal(item.content, target); assert.equal(row.state, 'saved');
+      assert.ok(!item.attachments[0].ref.endsWith(':' + row.source.selector));
+      const version = (await drive(agent, request(item))).value.attachmentResults[0].version;
+      assert.equal(version.state, 'same'); assert.equal(version.baselineAt, row.sample.completedAt);
+    });
     await check('search and text access no files; explicit native files/images/spill reuse original paths and one R for both', async () => {
       const spill = await ctx.spillStore.saveText({ owner: { sessionId: 'attachment-product' }, source: { kind: 'tool', toolName: 'example', callId: 'spill', label: 'result' }, suggestedName: 'result.txt', content: 'full saved output' });
       const agent = await seed('attachment-product', [text('needle history'), { type: 'file', attachment: file }, { type: 'image', attachment: image }], false, spill);

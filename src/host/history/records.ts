@@ -8,6 +8,7 @@ import { isScopedSnapshot, type HistorySnapshot } from './history.js';
 import { inspectHistorySources, type HistoryRange, type OriginalSource, type RangeBlock, type RangeExitReason } from './range.js';
 import { performanceDiagnostics, type PerformanceSpan } from '../runtime/performance.js';
 import { retainedBytes, type MemoryHolder } from '../runtime/memory.js';
+import { commandInputPath, userHistoryContent } from './user-content.js';
 
 type RecallContent = Extract<ContentBlock, { type: RangeBlock['type'] }>;
 export interface RecordOrigin {
@@ -59,7 +60,7 @@ export interface RecordToolPair {
   readonly callRecordIds: readonly string[];
   readonly resultRecordIds: readonly string[];
   readonly nativeCallSeqs: readonly number[];
-  readonly status: 'paired' | 'call_record_missing' | 'result_missing' | 'ambiguous';
+  readonly status: 'paired' | 'result_excluded' | 'call_record_missing' | 'result_missing' | 'ambiguous';
 }
 export type RecordSelection = { readonly kind: 'recall' } | {
   readonly kind: 'events';
@@ -225,7 +226,7 @@ const descriptorMetadata = (d: Descriptor) => ({ id: d.id, origin: d.origin, rol
 const recordMetadata = (r: CanonicalRecord) => ({ id: r.id, origin: r.origin, role: r.role, kind: r.kind, ...(r.tool ? { tool: r.tool } : {}) });
 
 function nativeContent(event: SessionEvent): readonly ContentBlock[] {
-  if (event.type === 'user/message') return event.data.content;
+  if (event.type === 'user/message') return userHistoryContent(event.data).content;
   if (event.type === 'assistant/message' || event.type === 'tool/result') return event.data.message.content;
   throw new RecallRecordsError('recall/records-invalid', `No original content at seq ${event.seq}`);
 }
@@ -280,7 +281,7 @@ function descriptors(snapshot: HistorySnapshot, originals: readonly OriginalSour
   });
 }
 
-function toolPairs(all: readonly Descriptor[], events: readonly SessionEvent[], historyId: string): Map<string, RecordToolPair> {
+function toolPairs(all: readonly Descriptor[], events: readonly SessionEvent[], historyId: string, forwardedCalls: ReadonlySet<number>): Map<string, RecordToolPair> {
   const groups = new Map<string, { callId: string; callRecordIds: string[]; resultRecordIds: string[]; nativeCallSeqs: number[] }>();
   const group = (id: string, callId: string) => {
     if (!groups.has(id)) groups.set(id, { callId, callRecordIds: [], resultRecordIds: [], nativeCallSeqs: [] });
@@ -296,10 +297,15 @@ function toolPairs(all: readonly Descriptor[], events: readonly SessionEvent[], 
     // Excluded calls do not gain a pairing entry via their log-only duplicate.
     groups.get(key)?.nativeCallSeqs.push(event.seq);
   }
-  return new Map([...groups].map(([id, g]) => [id, freeze({ id, ...g, status:
-    g.callRecordIds.length > 1 || g.resultRecordIds.length > 1 || g.nativeCallSeqs.length > 1 ? 'ambiguous'
-      : !g.callRecordIds.length ? 'call_record_missing' : !g.resultRecordIds.length ? 'result_missing' : 'paired',
-  } as RecordToolPair)]));
+  return new Map([...groups].map(([id, g]) => {
+    const excluded = g.nativeCallSeqs.some(seq => forwardedCalls.has(seq));
+    let status: RecordToolPair['status'] = 'paired';
+    if (g.callRecordIds.length > 1 || g.resultRecordIds.length + Number(excluded) > 1 || g.nativeCallSeqs.length > 1) status = 'ambiguous';
+    else if (!g.callRecordIds.length) status = 'call_record_missing';
+    else if (excluded) status = 'result_excluded';
+    else if (!g.resultRecordIds.length) status = 'result_missing';
+    return [id, freeze({ id, ...g, status })];
+  }));
 }
 
 /** Metadata only; allows precise canonical-record context without extracting retained bodies. */
@@ -307,7 +313,12 @@ export function indexHistoryRecords(snapshot: HistorySnapshot, projections: read
   const historyId = identity({ header: snapshot.header, inheritedEventCount: snapshot.inheritedEventCount });
   const inspection = inspectHistorySources(snapshot, projections, signal);
   const all = descriptors(snapshot, inspection.originals(), historyId);
-  return freeze({ historyId, records: all.map(d => ({ ...descriptorMetadata(d), blockIndexes: d.blocks.map(b => b.index) })), pairs: [...toolPairs(all, snapshot.events, historyId).values()] });
+  const events = snapshot.events;
+  const records = all.map(d => ({
+    ...descriptorMetadata(d), blockIndexes: d.blocks.map(b => b.index),
+    textChars: d.blocks.every(block => block.type === 'text') ? textSize(nativeContent(events[d.origin.seq]!), d.blocks) : null,
+  }));
+  return freeze({ historyId, records, pairs: [...toolPairs(all, events, historyId, inspection.forwardedCalls).values()] });
 }
 
 const textSize = (content: readonly ContentBlock[], blocks: readonly RangeBlock[]) => blocks.reduce((size, block) => {
@@ -438,7 +449,7 @@ export class HistoryRecordCache {
           }
         }
         phase?.end();
-        pairs = toolPairs(all, events, historyId);
+        pairs = toolPairs(all, events, historyId, inspection.forwardedCalls);
         if (proof !== undefined) {
         // inspectHistorySources constructs/freezeTree's range and originals;
         // descriptors creates origins (including copied sourceEventSeqs), groups
@@ -486,7 +497,7 @@ export class HistoryRecordCache {
         const blocks: CanonicalBlock[] = [];
         for (const block of d.blocks) {
           const value = copyContent(content[block.index] as RecallContent);
-          const path = `${d.origin.contentPath}[${block.index}]`;
+          const path = d.origin.contentPath === commandInputPath ? commandInputPath : `${d.origin.contentPath}[${block.index}]`;
           const fingerprint = await work.fingerprint({ path, content: value }, phase);
           assertLive();
           blocks.push({ index: block.index, path, fingerprint, content: value, attachmentBytes: value.type === 'image' || value.type === 'file' ? 'not_loaded' : 'not_applicable' });

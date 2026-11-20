@@ -4,6 +4,8 @@ import { foldSurface, isAppendSurfaceEvent, type SessionMessageProjection } from
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types';
 import type { HistorySnapshot } from './history.js';
 import { DIAGNOSTIC_TOOL_NAME } from '../diagnostics.js';
+import { forwardedRecallResults } from './recall-copies.js';
+import { userHistoryContent, type commandInputPath } from './user-content.js';
 
 // Exact native identities, never a substring search over historical text.
 const RECALL_TOOLS = new Set(['recall_search', 'recall_read', DIAGNOSTIC_TOOL_NAME]);
@@ -24,7 +26,7 @@ export interface RangeBlock {
 export interface RangeSource {
   readonly seq: number;
   readonly role: 'user' | 'assistant' | 'tool';
-  readonly contentPath: 'data.content' | 'data.message.content';
+  readonly contentPath: 'data.content' | 'data.message.content' | typeof commandInputPath;
   readonly inherited: boolean;
   readonly retention: 'removed' | 'partial';
   readonly blocks: readonly RangeBlock[];
@@ -185,6 +187,7 @@ export function inspectHistorySources(snapshot: HistorySnapshot, projections: re
     for (const target of targets) add(target.seq, { kind: 'image_offload', eventSeq: event.seq, imageIndexes: [...target.imageIndexes] });
   }
   const calls = indexCalls(events);
+  const forwarded = forwardedRecallResults(events);
   const current = new Set<number>(folded.nodes);
   const source = (event: SessionEvent): OriginalSource | undefined => {
     signal?.throwIfAborted();
@@ -195,12 +198,13 @@ export function inspectHistorySources(snapshot: HistorySnapshot, projections: re
     if (event.type === 'user/message') {
       // Source identity also excludes checkpoints imported as append messages.
       if ((event.data.source.kind as string) === 'compact-checkpoint') return;
-      role = 'user'; content = event.data.content; contentPath = 'data.content';
+      role = 'user';
+      ({ content, contentPath } = userHistoryContent(event.data));
     } else if (event.type === 'assistant/message') {
       role = 'assistant'; content = event.data.message.content; contentPath = 'data.message.content';
     } else if (event.type === 'tool/result') {
       resultName = resultToolName(event, calls);
-      if (RECALL_TOOLS.has(resultName)) return;
+      if (RECALL_TOOLS.has(resultName) || forwarded.results.has(event.seq)) return;
       role = 'tool'; content = event.data.message.content; contentPath = 'data.message.content';
     } else return;
     const blocks = eligibleBlocks(content, role, event, calls, resultName);
@@ -219,7 +223,7 @@ export function inspectHistorySources(snapshot: HistorySnapshot, projections: re
     surfaceSeqs: [...folded.nodes], sources,
   });
   // Internal, borrowed view: use and discard within the snapshot callback.
-  return { range, originals: () => {
+  return { range, forwardedCalls: forwarded.calls, originals: () => {
     void snapshot.events; // Enforce the owning scope even after classification.
     return events.flatMap(event => { const original = source(event); return original ? [freezeTree(original)] : []; });
   } };

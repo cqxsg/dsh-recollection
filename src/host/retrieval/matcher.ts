@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import type { CanonicalRecord } from '../history/records.js';
+import { commandInputPath } from '../history/user-content.js';
 import { RecallError, type SearchTerms } from '../protocol.js';
 import type { CallTimeline } from '../runtime/deadline.js';
 import { argumentsHash } from '../runtime/identity.js';
@@ -20,7 +21,7 @@ export function recordDocument(record: CanonicalRecord): RecordDocument {
     else if (value && typeof value === 'object') for (const [key, child] of Object.entries(value)) strings(child, `${path}.${key}`);
   };
   for (const block of record.blocks) {
-    if (block.content.type === 'text') add(`${block.path}.text`, block.content.text);
+    if (block.content.type === 'text') add(block.path === commandInputPath ? block.path : `${block.path}.text`, block.content.text);
     else if (block.content.type === 'tool-call') { add(`${block.path}.name`, block.content.name); add(`${block.path}.arguments`, block.content.arguments); }
     else strings(block.content.attachment, `${block.path}.attachment`);
   }

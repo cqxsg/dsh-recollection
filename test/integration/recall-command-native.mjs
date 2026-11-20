@@ -4,6 +4,7 @@ import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
 import { currentInteraction, classifyHistoryRange } from '../../lib/index.js';
 import { human } from '../../support/fixtures/scripted-model.mjs';
 import { deferred, replace } from '../../support/fixtures/control.mjs';
+import { rangeFixture } from '../../support/fixtures/range.mjs';
 
 const marker = '[/recall request';
 const textOf = message => message.content.filter(b => b.type === 'text').map(b => b.text).join('');
@@ -52,6 +53,28 @@ export async function verifyRecallCommand(ctx, h, evidence, check) {
     assert.equal(events(agent).filter(e => e.type === 'assistant/message').some(e => textOf(e.data.message).length), false, 'plugin emits no narration');
     const range = await ctx.recallHistory.withSnapshot(agent.id, cut => classifyHistoryRange(cut, ctx.sessions.messageProjections));
     assert.ok(range.sources.every(source => !events(agent)[source.seq].type.startsWith('command/')), 'command lifecycle is not historical evidence');
+  });
+  await check('recall indexes and rereads only command arguments while a human can quote the same template', async () => {
+    const { agent: a } = await h.seed('command-authorship');
+    const target = '  审核 design-target-137\n第二行  ', quoted = 'infer a useful recall target';
+    for (const input of ['', target]) {
+      reply(a); await executeRecall(ctx, a, input); await finish(a);
+      const command = commandInputs(a).at(-1); rangeFixture(a.session).summary([command.seq]);
+    }
+    assert.equal(events(a).filter(e => e.type === 'command/run').length, 2);
+    const searchText = async term => (await h.search(a, human('check historical source'), [term])).value;
+    assert.equal((await searchText(quoted)).totalHits, 0);
+    assert.equal((await searchText('Use the current context and the recall tools')).totalHits, 0);
+    const found = await searchText('design-target-137');
+    assert.equal(found.totalHits, 1); assert.equal(found.items[0].content, target);
+    const read = (await h.read(a, found.items[0].ref)).value;
+    assert.equal(read.items[0].content, target); assert.equal(read.items[0].source.authorship, 'human');
+    reply(a); a.followup(human(quoted)); await finish(a);
+    const original = events(a).findLast(e => e.type === 'user/message' && textOf(e.data) === quoted);
+    rangeFixture(a.session).summary([original.seq]);
+    const manual = await searchText(quoted);
+    assert.equal(manual.totalHits, 1); assert.equal(manual.items[0].source.seq, original.seq);
+    assert.equal((await h.read(a, manual.items[0].ref)).value.items[0].content, quoted);
   });
   await check('whitespace chooses the bare template; multiline and long targets remain intact', async () => {
     const inputs = [' \t\r\n ', '  中文目标\nE:\\work\\a+b.ts [x].*  ', '\n' + '保留原文😀 x.* '.repeat(1800) + '\n  '];

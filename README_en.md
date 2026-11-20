@@ -8,6 +8,8 @@
 
 Proactive recall for DeepSeek Harness. Even when context compaction causes AI to lose earlier details, it can retrieve the information it needs from the original history on its own.
 
+`dsh-recollection` does not rely on prior long-term memory extraction or consolidation, nor does it require deciding in advance which parts of the conversation are worth remembering. It focuses on helping AI revisit original records whenever needed, either on its own or alongside other long-term memory systems.
+
 - **Autonomous recall**: AI decides when to revisit history and retrieves missing context and details, making recall a natural part of conversations and work.
 - **Original records**: Revisit earlier agreements, key details, and the rationale behind decisions in their original conversational context.
 - **On-demand retrieval**: Find relevant records first, then expand only what you need to keep context usage low.
@@ -52,6 +54,12 @@ After installing or updating, enable the plugin to start using it. No restart is
 Context compaction removes some of the original conversation from the model's visible context, which can cause details to be lost. `dsh-recollection` lets AI revisit the original history of the current session and retrieve the information it needs on demand.
 
 `dsh-recollection` provides two recall tools. When AI needs to revisit history, it first uses `recall_search` to find relevant records and obtain original excerpts with source information. If it needs more detail, it uses `recall_read` to expand the original text and surrounding discussion.
+
+### How it relates to long-term memory
+
+Long-term memory systems typically distill and organize past information to retain facts, preferences, and experiences that may be useful later. `dsh-recollection` takes a different approach: rather than deciding in advance what is worth remembering, it lets AI revisit original session history when needed.
+
+The two approaches can work together and complement each other. With `dsh-recollection`, AI can revisit original records on its own without a long-term memory system. When used alongside one, the plugin lets AI trace information back to its source and recover details from the original conversation. In turn, information retained in long-term memory can give AI clues for locating relevant records more precisely with `dsh-recollection`.
 
 ### Runtime flow
 

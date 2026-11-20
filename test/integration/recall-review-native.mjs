@@ -3,6 +3,9 @@ import { verifyMatchingScheduling } from '../runtime/matching-scheduling-native.
 import { verifyRecallMemory } from '../runtime/memory-native.mjs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import * as spill from '@deepseek-ai/dsh-spill-policy';
+import { hasSpillNotice } from '@deepseek-ai/dsh-spill-policy/notice';
+import { rangeFixture } from '../../support/fixtures/range.mjs';
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
 import { currentInteraction } from '../../lib/index.js';
 import { human, recovery } from '../../support/fixtures/scripted-model.mjs';
@@ -21,6 +24,52 @@ export async function verifyRecallReviewSuite(ctx) {
 
 /** Review regressions use the ordinary product services and native delivery. */
 export async function verifyRecallReview(ctx, h, check) {
+  await check('spilled direct forwards expose only original search hits and their script calls read without gaps', async () => {
+    const bodies = Array.from({ length: 18 }, (_, i) => `lookup-key original-marker ${i} ` + 'sample item '.repeat(8));
+    const { agent } = await h.seed('recall-forward-spill', bodies);
+    const ref = (await h.search(agent, human('locate source'), ['lookup-key'])).value.items[0].ref;
+    setSandboxMode(agent.session, 'read-only');
+    const original = [...ctx.registry.get(spill).fibers].find(f => f.state === 2);
+    await original.dispose();
+    const limited = await ctx.plugin(spill, { maxInlineTokens: 1600 }), ptc = agent.ctx.tools.presentAs('ptc');
+    const forwards = [];
+    let derived;
+    try {
+      for (const [name, args] of [
+        ['recall_search', { action: 'search', mode: 'literal', patterns: ['lookup-key'] }],
+        ['recall_read', { action: 'read', scope: 'turn', ref }],
+      ]) {
+        const description = `historical-forward-${name}`;
+        const code = `return await tools.${name}(${JSON.stringify(args)});`;
+        const [outer] = await h.drive(agent, [{ name: 'run_code', args: { code, description } }], human('run script'));
+        assert.equal(outer.data.message.isError, false);
+        assert.ok(hasSpillNotice(outer.value), `expected a real ${name} spill`);
+        assert.ok(outer.value.includes('original-marker'), 'retained preview contains original evidence');
+        const call = agent.session.snapshotEvents().findLast(e => e.type === 'assistant/message'
+          && e.data.message.content.some(b => b.type === 'tool-call' && b.id === outer.data.message.toolCallId));
+        const history = rangeFixture(agent.session);
+        history.summary([call.seq]); history.summary([outer.event.seq]);
+        forwards.push({ description, seq: call.seq });
+      }
+      const code = 'const result = await tools.recall_search({action:"search",mode:"literal",patterns:["lookup-key"]}); return {conclusion:"derived-marker",result};';
+      [derived] = await h.drive(agent, [{ name: 'run_code', args: { code, description: 'add analysis' } }], human('interpret the result'));
+      assert.ok(hasSpillNotice(derived.value));
+    } finally { ptc(); await limited.dispose(); await ctx.plugin(spill, original.config); }
+    const hits = (await h.search(agent, human('find original evidence'), ['original-marker'])).value;
+    assert.equal(hits.totalHits, bodies.length); assert.ok(hits.items.every(item => item.source.role === 'user'));
+    assert.equal((await h.search(agent, human('find spill references'), ['Full formatted result stored at:'])).value.totalHits, 0);
+    rangeFixture(agent.session).summary([derived.event.seq]);
+    const kept = (await h.search(agent, human('find analysis'), ['derived-marker'])).value;
+    assert.equal(kept.totalHits, 1); assert.equal(kept.items[0].source.seq, derived.event.seq);
+    assert.deepEqual(kept.items[0].attachments.map(file => file.type), ['spill']);
+    for (const { description, seq } of forwards) {
+      const call = (await h.search(agent, human('find script'), [description])).value.items.find(item => item.source.seq === seq);
+      assert.ok(call);
+      const page = (await h.read(agent, call.ref)).value;
+      assert.equal(page.sourceComplete, true); assert.equal(page.readComplete, true); assert.deepEqual(page.gaps ?? [], []);
+      assert.deepEqual(page.items.map(item => item.source.seq), [seq]);
+    }
+  });
   await verifyMatchingScheduling(ctx, h, check);
   await verifyRecallMemory(ctx, h, check);
   const state = agent => ctx.recallBudget.state(currentInteraction(agent.session));

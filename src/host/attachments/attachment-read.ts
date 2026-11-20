@@ -2,24 +2,46 @@ import type { Context } from '@deepseek-ai/cordis';
 import type { SessionHeader } from '@deepseek-ai/dsh-session';
 import type { CanonicalRecord } from '../history/records.js';
 import { accessAttachment, attachmentMetadata, type AttachmentSource } from './attachments.js';
-import { recordHashSource } from './attachment-service.js';
+import { nativeHashSources, recordHashSource } from './attachment-service.js';
+import { commandInputPath } from '../history/user-content.js';
+import { recallCommandInput } from '../../shared/recall-command.js';
 import { argumentsHash } from '../runtime/identity.js';
-import { hashKey, type HashRecord } from './hash-ledger.js';
+import { hashKey, type HashRecord, type HashSource } from './hash-ledger.js';
 import { hashCurrent } from './hashing.js';
 import type { RecallConfig } from '../runtime/config.js';
 import type { AttachmentResult } from '../protocol.js';
 
+/** User-facing offsets in a command refer to its argument. Durable file samples use the native message offset. */
+async function pathBinding(ctx: Context, header: SessionHeader, record: CanonicalRecord, source: AttachmentSource, signal: AbortSignal) {
+  if (record.origin.contentPath !== commandInputPath) return recordHashSource(header, record, source);
+  return ctx.recallHistory.withSnapshot(header.id, snapshot => {
+    const event = snapshot.events[record.origin.seq], block = record.blocks[0]?.content;
+    if (event?.type !== 'user/message' || event.data.id !== record.origin.messageId || block?.type !== 'text'
+      || recallCommandInput(event.data.source) !== block.text || source.offset === undefined) return;
+    const raw = event.data.content[0];
+    if (raw?.type !== 'text') return;
+    const start = raw.text.indexOf(block.text);
+    if (start < 0 || start !== raw.text.lastIndexOf(block.text)) return;
+    const selector = `p0:${start + source.offset}`;
+    return nativeHashSources(header, event).find(binding => binding.selector === selector && binding.path === source.path);
+  }, signal, { waitForQuiescence: true });
+}
+
 /** Source selection has already been authenticated by the read engine. */
 export async function readAttachment(ctx: Context, fileContext: Context, header: SessionHeader, record: CanonicalRecord, source: AttachmentSource, config: RecallConfig, signal: AbortSignal, sourceRef: string): Promise<AttachmentResult> {
-  const binding = source.type === 'path' ? recordHashSource(header, record, source) : undefined;
+  let binding: HashSource | undefined;
   let row: HashRecord | undefined;
   let baselineUnavailable = false;
-  if (binding) {
+  if (source.type === 'path') {
     try {
       const hashes = ctx.get('recallHashes');
       baselineUnavailable = !hashes;
-      row = hashes?.get(hashKey(binding));
-    } catch { baselineUnavailable = true; }
+      if (hashes) {
+        binding = await pathBinding(ctx, header, record, source, signal);
+        row = binding && hashes.get(hashKey(binding));
+        baselineUnavailable = !binding;
+      }
+    } catch { signal.throwIfAborted(); baselineUnavailable = true; }
   }
   const baseline = row && argumentsHash(row.source) === argumentsHash(binding) ? row : undefined;
   // A child header describes the child's cwd, not the cwd of its inherited events.

@@ -69,7 +69,7 @@ export class RecallSearchEngine {
       // All patterns are validated even for an empty eligible history.
       await this.matcher.validate(request, timeline);
       order = request.order;
-      const pendingKey = argumentsHash([sessionId, queryTermsId(request)]);
+      const pendingKey = argumentsHash([reservation.interaction, queryTermsId(request)]);
       const pending = this.incomplete.get(pendingKey);
       if (pending) query = pending;
       else {
@@ -119,7 +119,8 @@ export class RecallSearchEngine {
           await new Promise<void>(resolve => setImmediate(resolve));
         }
         await verifyHistoryCut(this.ctx, sessionId, query.cursor, query.fingerprint, timeline);
-        query.complete = true; this.incomplete.delete(pendingKey);
+        query.complete = true;
+        for (const [key, pending] of this.incomplete) if (pending === query) this.incomplete.delete(key);
       } catch (error) {
         if (error instanceof RecallError && error.code === 'stale_reference') this.drop(query);
         throw error;

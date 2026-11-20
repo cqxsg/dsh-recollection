@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Session, buildForkSeed } from '@deepseek-ai/dsh-session';
+import { formatSpillNotice } from '@deepseek-ai/dsh-spill-policy/notice';
 import { foldSurface } from '@deepseek-ai/dsh-session/surface';
 import { classifyHistoryRange, DIAGNOSTIC_TOOL_NAME } from '../../lib/index.js';
 import { createHistoryFixture } from '../../support/fixtures/history.mjs';
@@ -133,7 +134,10 @@ export async function verifyRange(ctx) {
     const onlyReasoning = f.assistant([{ type: 'reasoning', text: 'excluded trace' }]);
     const blocks = ['recall_search', 'recall_read', DIAGNOSTIC_TOOL_NAME, 'recall_search_notes'].map((name, i) => f.callBlock(`mixed-${i}`, name));
     const mixed = f.assistant([text('ordinary answer'), ...blocks]);
-    const results = blocks.map(block => f.result(block, f.callLog(block), [text('saved result')]));
+    const results = blocks.map(block => {
+      const spill = formatSpillNotice({ kind: 'exact', count: 80 }, { locator: `/spill/${block.name}.txt`, retrievalHint: 'Use read.' });
+      return f.result(block, f.callLog(block), [text(`saved preview\n\n${spill}`)]);
+    });
     const nodes = [user, system, developer, summaryCopy, onlyReasoning, mixed, ...results].map(e => e.seq);
     f.summary(nodes);
     const range = classify(session);

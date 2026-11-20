@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { defineTool } from '@deepseek-ai/dsh-tools';
-import { RecallBudgetService, RecallReferenceStore, RecallCursorStore, RecallCallController, RecallSearchEngine, RecallReadEngine, HistoryRecordCache, recordLocator, loadRecallConfig, nativeSchema, inputSchema, recallResult, renderRecall, renderedTokens, currentInteraction } from '../../lib/index.js';
+import { RecallBudgetService, RecallReferenceStore, RecallCursorStore, RecallCallController, RecallSearchEngine, RecallReadEngine, HistoryRecordCache, RecallError, recordLocator, loadRecallConfig, nativeSchema, inputSchema, recallResult, renderRecall, renderedTokens, currentInteraction, startPerformanceCapture } from '../../lib/index.js';
 import { scriptedModel, human, recovery } from '../../support/fixtures/scripted-model.mjs';
 import { replace } from '../../support/fixtures/control.mjs';
 import { createHistoryFixture } from '../../support/fixtures/history.mjs';
@@ -55,6 +55,49 @@ export async function verifyRead(ctx) {
   const next = (agent, cursor, input = recovery()) => drive(agent, 'recall_read', { action: 'next', cursor }, input);
   const state = agent => ctx.recallBudget.state(currentInteraction(agent.session));
   try {
+    await check('short records in one page share prefix verification and preserve native order', async () => {
+      const { agent, expected } = await seeded('read-batch-proof', f => Array.from({ length: 15 }, (_, i) => f.user([text(`short-${i}!`)])));
+      const ref = (await search(agent, ['short-7!'])).items[0].ref;
+      const proofs = [], run = readEngine.run.bind(readEngine);
+      const restore = replace(readEngine, 'run', async (...args) => {
+        const capture = startPerformanceCapture();
+        try { return await run(...args); }
+        finally { proofs.push(capture.snapshot().aggregates['preparation.fingerprint'].counters.fullProofs); capture.stop(); }
+      });
+      try {
+        for (const [scope, rows] of [['record', expected.slice(7, 8)], ['context', expected.slice(5, 10)], ['turn', expected]]) {
+          const page = await read(agent, ref, scope);
+          assert.equal(page.readComplete, true); assert.deepEqual(page.items.map(i => i.source.seq), rows.map(e => e.seq));
+          assert.deepEqual(page.items.map(i => i.content), rows.map(e => e.data.content[0].text));
+        }
+        console.log('Page prefix proofs (1, 5, 15 records):', proofs);
+        assert.ok(proofs[0] <= 5 && proofs[1] < 9 && proofs[2] < 19);
+      } finally { restore(); }
+      const load = readEngine.load.bind(readEngine), observe = ctx.recallHistory.withSnapshot.bind(ctx.recallHistory);
+      let loadedPage = false;
+      const resetLoad = replace(readEngine, 'load', async (ids, ...rest) => {
+        const records = await load(ids, ...rest);
+        if (ids.length > 1) loadedPage = true;
+        return records;
+      });
+      const resetHistory = replace(ctx.recallHistory, 'withSnapshot', (id, fn, ...rest) => observe(id, (cut, signal) =>
+        fn(loadedPage ? { ...cut, header: { ...cut.header, createdAt: cut.header.createdAt + 1 } } : cut, signal), ...rest));
+      try {
+        const changed = await read(agent, ref, 'context', human('verify before delivery'));
+        assert.ok(loadedPage); assert.equal(changed.code, 'stale_reference');
+        assert.deepEqual(changed.items, []); assert.equal(changed.nextCursor, undefined);
+      } finally { resetHistory(); resetLoad(); }
+      let refused = 0;
+      const resetCapacity = replace(readEngine, 'load', (ids, ...rest) => {
+        if (ids.length > 1) { refused++; throw new RecallError('cache_resource_limit', 'No space for read-ahead'); }
+        return load(ids, ...rest);
+      });
+      try {
+        const limited = await read(agent, ref, 'context', human('read with limited cache'));
+        assert.equal(refused, 1); assert.equal(limited.readComplete, true);
+        assert.deepEqual(limited.items.map(i => i.source.seq), expected.slice(5, 10).map(e => e.seq));
+      } finally { resetCapacity(); }
+    });
     await check('record/context/turn select exact canonical records and nonadjacent tool partners without expanding the context center', async () => {
       const { agent, expected } = await seeded('read-ranges', f => {
         f.user([text('outside')]); const x = f.callBlock('read-pair', 'read', '{"needle":"tool"}');

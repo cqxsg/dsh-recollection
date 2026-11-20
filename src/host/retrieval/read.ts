@@ -18,9 +18,12 @@ import { recordAttachments, type AttachmentSource } from '../attachments/attachm
 import { readAttachment } from '../attachments/attachment-read.js';
 import { retainedBytes, type MemoryHolder } from '../runtime/memory.js';
 
+const MAX_PAGE_BATCH_RECORDS = 8;
+
 interface ReadState {
   sessionId: string; anchor: string; cursor: number; fingerprint: string; scope: 'record' | 'context' | 'turn';
   before: number; after: number; ids: string[]; units: { start: number; end: number }[]; gaps: string[]; boundaries: string[];
+  textChars: (number | null)[];
   header: SessionHeader; target?: 'attachments' | 'both'; files?: { record: CanonicalRecord; source: AttachmentSource }[];
   fileGaps: Map<number, string>;
   memory?: MemoryHolder | undefined;
@@ -35,7 +38,7 @@ export class RecallReadEngine {
   constructor(private readonly ctx: Context, readonly config: RecallConfig) {}
   private drop(sessionId: string) {
     for (const [key, state] of this.states) if (state.sessionId === sessionId) {
-      this.states.delete(key); delete state.files; state.ids.length = 0; state.units.length = 0; state.fileGaps.clear(); state.memory?.dispose();
+      this.states.delete(key); delete state.files; state.ids.length = 0; state.textChars.length = 0; state.units.length = 0; state.fileGaps.clear(); state.memory?.dispose();
     }
     for (const [cursor, id] of this.issued) if (id === sessionId) this.issued.delete(cursor);
     this.cursorMemory.get(sessionId)?.dispose(); this.cursorMemory.delete(sessionId);
@@ -95,7 +98,7 @@ export class RecallReadEngine {
       if (scope === 'turn' && info.record.origin.turn === null) gaps.push('turn_identity_unavailable');
       for (const record of selected) if (record.tool && request.target !== 'attachments') {
         const pair = info.index.pairs.find(p => p.id === record.tool!.pairId);
-        if (!pair || pair.status !== 'paired') gaps.push(`${record.tool.pairId}:${pair?.status ?? 'pair_unavailable'}`);
+        if (pair?.status !== 'paired' && pair?.status !== 'result_excluded') gaps.push(`${record.tool.pairId}:${pair?.status ?? 'pair_unavailable'}`);
         if (pair) for (const id of [...pair.callRecordIds, ...pair.resultRecordIds]) ids.add(id);
       }
       const ordered = info.index.records.filter(r => ids.has(r.id));
@@ -110,6 +113,7 @@ export class RecallReadEngine {
       state = { sessionId, anchor: request.ref, cursor: info.cursor, fingerprint: info.fingerprint, scope,
         header: info.header, fileGaps: new Map(), before: this.config.contextBefore, after: this.config.contextAfter,
         ids: request.target === 'attachments' ? [] : ordered.map(r => r.id), units, gaps: [...new Set(gaps)],
+        textChars: request.target === 'attachments' ? [] : ordered.map(r => r.textChars),
         boundaries: scope === 'context' ? [...(first === 0 ? ['history_start'] : []), ...(last === info.index.records.length ? ['fixed_snapshot_end'] : [])] : [] };
       if (request.target !== 'text') {
         const records = await this.load(ordered.map(r => r.id), state, exec, timeline);
@@ -197,16 +201,33 @@ export class RecallReadEngine {
     }
     let index = initialIndex, offset = initialOffset;
     const items: ResultItem[] = [];
+    let batch: readonly CanonicalRecord[] = [], batchStart = initialIndex, batchLimit = MAX_PAGE_BATCH_RECORDS;
     while (atFile === files.length && index < state.ids.length) {
       timeline.check();
       const unit = state.units.find(u => u.start <= index && index < u.end)!;
       const pending: ResultItem[] = [];
       let at = index, within = offset, overflow: { record: CanonicalRecord; text: string } | undefined;
       while (at < unit.end) {
-        const [record] = await this.load([state.ids[at]!], state, exec, timeline), text = recordDocument(record!).body;
+        timeline.check();
+        if (at >= batchStart + batch.length) {
+          // Bound lookahead by both count and remaining page space; large or non-text records load alone.
+          const available = limit - renderedTokens(build([...items, ...pending], at, within));
+          let chars = state.textChars[at] ?? Infinity, end = at + 1;
+          while (end < state.ids.length && end - at < batchLimit && chars + (state.textChars[end] ?? Infinity) <= available) {
+            chars += state.textChars[end]!; end++;
+          }
+          try { batch = await this.load(state.ids.slice(at, end), state, exec, timeline); }
+          catch (error) {
+            if (end === at + 1 || !(error instanceof RecallError) || error.code !== 'cache_resource_limit') throw error;
+            batchLimit = 1;
+            batch = await this.load([state.ids[at]!], state, exec, timeline);
+          }
+          batchStart = at;
+        }
+        const record = batch[at - batchStart]!, text = recordDocument(record).body;
         if (within > text.length || unicodeBoundary(text, within) !== within) throw new RecallError('stale_reference', 'Read cursor is outside a Unicode-safe record position.', true);
-        const item = references.item(record!, text.slice(within), within, text.length, text.length);
-        if (renderedTokens(build([...items, ...pending, item], at + 1, 0)) > limit) { overflow = { record: record!, text }; break; }
+        const item = references.item(record, text.slice(within), within, text.length, text.length);
+        if (renderedTokens(build([...items, ...pending, item], at + 1, 0)) > limit) { overflow = { record, text }; break; }
         pending.push(item); at++; within = 0;
       }
       if (!overflow) { items.push(...pending); index = at; offset = 0; continue; }

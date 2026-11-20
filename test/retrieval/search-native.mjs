@@ -171,6 +171,22 @@ export async function verifySearch(ctx) {
       const newer = await drive(agent, search(['needle'])); assert.equal(newer.totalHits, 6); assert.notEqual(state(agent).calls.at(-1).query, originalQuery);
       assert.equal(state(agent).searches, 3);
     });
+    await check('a new interaction searches newly eligible history after an interrupted scan', async () => {
+      const { agent } = await seeded('search-new-interaction', f => Array.from({ length: 5 }, (_, i) => f.user([text(`old ${i}`)])));
+      const raw = engine.matcher.match.bind(engine.matcher); let matched = 0;
+      const undo = replace(engine.matcher, 'match', (...args) => {
+        if (++matched === 3) throw new RecallError('business_deadline', 'Interrupted batch.');
+        return raw(...args);
+      });
+      const request = search(['new-fact']);
+      try { assert.equal((await drive(agent, request, human('first search'))).status, 'incomplete'); }
+      finally { undo(); }
+      const f = rangeFixture(agent.session), added = f.user([text('new-fact')], { kind: 'fixture-late' });
+      f.summary([added.seq]);
+      const result = await drive(agent, request, human('search the current history'));
+      assert.equal(result.scannedRecords, 6); assert.equal(result.totalHits, 1);
+      assert.equal(result.items[0].source.seq, added.seq);
+    });
     await check('search cursors have fixed starts; delivered duplicates charge R and close on the second unchanged invalid request', async () => {
       const { agent } = await seeded('search-cursor', f => Array.from({ length: 9 }, (_, i) => f.user([text(`needle ${i} ` + 'x'.repeat(900))])));
       const first = await drive(agent, search(['needle']), human('cursor'));

@@ -7,10 +7,11 @@ import { estimateContent } from '@deepseek-ai/dsh-token-meter/estimate';
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy';
 import * as timeoutPolicy from '@deepseek-ai/dsh-tool-call-timeout-policy';
 import { createScope } from '@deepseek-ai/dsh-scope';
-import { currentInteraction, renderedTokens, DIAGNOSTIC_TOOL_NAME, NativeMatcher } from '../../lib/index.js';
+import { currentInteraction, renderedTokens, DIAGNOSTIC_TOOL_NAME, NativeMatcher, HistoryRecordCache } from '../../lib/index.js';
 import { human, recovery } from '../../support/fixtures/scripted-model.mjs';
 import { replace, deferred } from '../../support/fixtures/control.mjs';
 import { recallHarness } from '../../support/fixtures/recall-harness.mjs';
+import { rangeFixture } from '../../support/fixtures/range.mjs';
 import { verifyPublicEntry } from './public-entry-native.mjs';
 
 export async function verifyRecall(ctx, browserBase) {
@@ -73,6 +74,104 @@ export async function verifyRecall(ctx, browserBase) {
         const [ordinary] = await h.drive(agent, [{ name: 'run_code', args: { code: 'return 42;', description: 'Ordinary work after recall closed' } }]); assert.equal(ordinary.data.message.isError, false); assert.equal(state(agent).calls.length, 4);
       } finally { native(); }
     });
+    await check('sequential run_code executions can reuse a root ID; charges, replay and redelivery use the native execution', async () => {
+      const { agent } = await h.seed('recall-reused-root');
+      setSandboxMode(agent.session, 'read-only');
+      const ptc = agent.ctx.tools.presentAs('ptc'), id = 'same-root';
+      const args = { action: 'search', mode: 'literal', patterns: ['needle'] };
+      const script = code => [{ name: 'run_code', id, args: { code, description: 'Root reuse check' } }];
+      const run = input => h.drive(agent, script(`return await tools.recall_search(${JSON.stringify(args)});`), human(input));
+      try {
+        await h.drive(agent, script('return 42;'), human('first root'));
+        const first = currentInteraction(agent.session);
+        const [second] = await run('second root'); assert.equal(second.data.message.isError, false);
+        const row = state(agent); assert.equal(row.actualCalls, 1); assert.equal(row.shared, 11);
+        assert.equal(ctx.recallBudget.state(first), undefined);
+        const replay = await ctx.tools.execute({ name: 'recall_search', callId: row.calls[0].callId, rootCallId: id,
+          parent: Symbol('closed root'), arguments: args, agent, signal: new AbortController().signal });
+        assert.equal(replay.error.info.code, 'call_replay'); assert.deepEqual(state(agent), row);
+      } finally { ptc(); }
+      assert.equal((await h.search(agent)).value.status, 'ok');
+    });
+    await check('ambiguous PTC provenance rejects only that dispatch and cold resume admits independent searches', async () => {
+      const { agent } = await h.seed('recall-ambiguous-root');
+      const id = 'overlapping-root';
+      setSandboxMode(agent.session, 'read-only');
+      const ptc = agent.ctx.tools.presentAs('ptc');
+      const [first] = await h.drive(agent, [{ name: 'run_code', id, args: { code: 'return 42;', description: 'First root' } }], human('first root'));
+      // Withhold the first result's source link from the observer. The stored log stays native.
+      const snapshot = agent.session.snapshotEvents.bind(agent.session);
+      const restore = replace(agent.session, 'snapshotEvents', (...args) => snapshot(...args).map(
+        event => event.seq === first.event.seq ? { ...event, sourceEventSeqs: undefined } : event));
+      try {
+        await h.drive(agent, [{ name: 'run_code', id, args: {
+          code: 'return await tools.recall_search({action:"search",mode:"literal",patterns:["needle"]});', description: 'Ambiguous root',
+        } }], human('ambiguous dispatch'));
+      } finally { ptc(); restore(); }
+      const failed = agent.session.snapshotEvents().findLast(e => e.type === 'tool/ptc-dispatch');
+      assert.equal(failed.data.error.code, 'RECALL_IDENTITY_UNVERIFIED');
+      assert.equal(state(agent), undefined);
+      const anchor = currentInteraction(agent.session);
+      const handle = h.agents.pop(); await handle.dispose();
+      const reopened = await ctx.agents.resume({ resumeSessionId: agent.id, agentOptions: h.model.options });
+      h.agents.push(reopened);
+      const replay = await ctx.tools.execute({ name: 'recall_search', callId: failed.data.subCallId, rootCallId: id,
+        parent: Symbol('closed root'), arguments: { action: 'search', mode: 'literal', patterns: ['needle'] }, agent: reopened.agent, signal: new AbortController().signal });
+      assert.equal(replay.error.info.code, 'ledger_missing'); assert.equal(state(reopened.agent), undefined);
+      const next = await h.search(reopened.agent, recovery());
+      assert.equal(next.value?.status, 'ok', JSON.stringify(next.data.error));
+      assert.deepEqual(currentInteraction(reopened.agent.session), anchor);
+      assert.equal(state(reopened.agent).actualCalls, 1); assert.equal(next.value.budget.shared_remaining, 11);
+    });
+    await check('a rejected duplicate direct ID leaves the same user request open to a fresh ID', async () => {
+      const { agent } = await h.seed('recall-duplicate-admission');
+      const calls = [{ name: 'recall_search', id: 'reused-direct', args: { action: 'search', mode: 'literal', patterns: ['needle'] } }];
+      assert.equal((await h.drive(agent, calls, human('first question')))[0].value.status, 'ok');
+      const [failed] = await h.drive(agent, calls, human('second question'));
+      assert.equal(failed.data.error.code, 'RECALL_IDENTITY_UNVERIFIED'); assert.equal(state(agent), undefined);
+      const anchor = currentInteraction(agent.session);
+      // An unknown terminal failure still requires accounting. Once the original
+      // refusal can be verified, that intervening uncharged retry must not block recovery.
+      const snapshot = agent.session.snapshotEvents.bind(agent.session);
+      const restore = replace(agent.session, 'snapshotEvents', (...args) => snapshot(...args).map(event => event.seq === failed.event.seq
+        ? { ...event, data: { ...event.data, error: { name: 'HarnessError', code: 'UNKNOWN' } } } : event));
+      try { assert.equal((await h.search(agent, recovery())).data.error.code, 'ledger_missing'); }
+      finally { restore(); }
+      assert.equal(state(agent), undefined);
+      const next = await h.search(agent, recovery());
+      assert.equal(next.value?.status, 'ok', JSON.stringify(next.data.error));
+      assert.deepEqual(currentInteraction(agent.session), anchor);
+      assert.equal(state(agent).actualCalls, 1); assert.equal(next.value.budget.shared_remaining, 11);
+    });
+    await check('only explicitly forwarded recall search/read results are excluded from later history', async () => {
+      const { agent } = await h.seed('recall-forwarding', ['index-key source-fact']);
+      const ref = (await h.search(agent, human('locate source'), ['index-key'])).value.items[0].ref;
+      setSandboxMode(agent.session, 'read-only');
+      const ptc = agent.ctx.tools.presentAs('ptc');
+      const lookup = 'tools.recall_search({action:"search",mode:"literal",patterns:["index-key","irrelevant )("]})';
+      const scripts = [
+        `return await ${lookup};`, `return await tools.recall_read({ action: "read", ref: ${JSON.stringify(ref)} });`,
+        `const result = await ${lookup}; return result.items[0];`,
+        `const result = await ${lookup}; return {result, conclusion: "analysis"};`,
+        `const result = await ${lookup}; return result;`,
+      ];
+      const sources = [];
+      try {
+        for (const code of scripts) {
+          const [outer] = await h.drive(agent, [{ name: 'run_code', args: { code, description: 'Shape of output' } }], human('script'));
+          assert.equal(outer.data.message.isError, false); sources.push(outer.event.seq);
+          rangeFixture(agent.session).summary([outer.event.seq]);
+        }
+      } finally { ptc(); }
+      const found = (await h.search(agent, human('verify source'), ['source-fact'])).value;
+      let page = found;
+      const items = [...found.items];
+      while (page.nextCursor) { page = (await h.next(agent, page.nextCursor)).value; items.push(...page.items); }
+      const hits = items.map(item => item.source.seq);
+      assert.equal(found.totalHits, 4);
+      assert.deepEqual(hits.filter(seq => sources.includes(seq)), sources.slice(2).reverse());
+      assert.equal(items.at(-1).source.role, 'user');
+    });
     await check('R=0 preserves real usable F pages and final delivery withdraws tools even when an unusable F balance remains', async () => {
       const { agent } = await h.seed('recall-free-only', Array.from({ length: 8 }, (_, i) => `needle ${i} ` + 'x'.repeat(900)));
       const first = (await h.search(agent)).value; assert.ok(first.nextCursor);
@@ -114,6 +213,26 @@ export async function verifyRecall(ctx, browserBase) {
         assert.equal(cancelled.data.message.isError, true); assert.equal(cancelled.data.error.code, 'ABORTED'); assert.equal(ctx.recallPreparation.status(agent.id).waiters, 0); assert.equal(state(agent).shared, 11);
         release.resolve(); await ctx.recallPreparation.wait(agent.id, AbortSignal.timeout(5000));
       } finally { release.resolve(); undo(); }
+    });
+    await check('cancelling a multi-record read releases its snapshot and admits a later read', async () => {
+      const { agent } = await h.seed('cancel-read-batch', Array.from({ length: 8 }, (_, i) => `batch text ${i}`));
+      const ref = (await h.search(agent, human('find anchor'), ['batch text 4'])).value.items[0].ref;
+      const entered = deferred(), original = HistoryRecordCache.prototype.prepareBatch;
+      const undo = replace(HistoryRecordCache.prototype, 'prepareBatch', async function(snapshot, projections, options, signal) {
+        if (snapshot.header.id === agent.id && options?.selection?.recordIds?.length > 1) {
+          entered.resolve(snapshot);
+          await new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
+        }
+        return original.call(this, snapshot, projections, options, signal);
+      });
+      try {
+        const pending = h.drive(agent, [{ name: 'recall_read', args: { action: 'read', ref, scope: 'turn' } }], human('read turn'), false);
+        const lease = await Promise.race([entered.promise, pending.then(() => assert.fail('read finished before reaching a multi-record batch'))]);
+        agent.cancel({ kind: 'user' }); const [cancelled] = await pending;
+        assert.equal(cancelled.data.error.code, 'ABORTED');
+        assert.throws(() => lease.events, { code: 'recall/history-scope-closed' });
+      } finally { undo(); }
+      assert.equal((await h.read(agent, ref, human('retry one record'))).value.items[0].content, 'batch text 4');
     });
     await check('worker file recovery needs no recall reload, retains failed charge and leaves original text reads available', async () => {
       const { agent } = await h.seed('recall-worker-recovery');
