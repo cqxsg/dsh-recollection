@@ -27,37 +27,45 @@ export function fileMentions(text: string): { original: string; path: string; of
   }
   return out;
 }
-/** Only the exact local rc.4 footer is a path locator. Other backends remain unresolved. */
-function spillLocation(text: string): { path: string; offset: number } | undefined {
-  if (!hasSpillNotice(text)) return;
-  const marker = ' Full formatted result stored at: ', suffix = '. Use read with offset/limit, or grep this path to search within it.)';
+/** Recognize native local footer conventions, never a digest or proof of saved content. */
+function spillLocation(text: string, toolName?: string): { path: string; offset: number; convention: string } | undefined {
+  const suffix = '. Use read with offset/limit, or grep this path to search within it.)';
   if (!text.endsWith(suffix)) return;
+  let marker: string, convention: string;
+  if (hasSpillNotice(text)) { marker = ' Full formatted result stored at: '; convention = 'rc.4-local-spill-notice'; }
+  else if (toolName === 'grep' && /^Found \d+ of \d+ matches\n\n/u.test(text)) {
+    marker = '\n\n(Full grep result stored at: '; convention = 'native-grep-local-spill-notice';
+  } else if (toolName === 'glob' && /\n\n\(Showing \d+ of \d+ paths(?:\.|, sampled across \d+ of the \d+ top-level entries this pattern matched instead of taken in modification-time order\.(?: Narrow path to inspect a specific subtree\.)?) Full sorted result stored at: /u.test(text)) {
+    marker = ' Full sorted result stored at: '; convention = 'native-glob-local-spill-notice';
+  } else return;
   const start = text.lastIndexOf(marker);
   if (start < 0) return;
   const path = text.slice(start + marker.length, -suffix.length);
-  if (!absoluteFilePath(path)) return;
-  return { path, offset: start + marker.length };
+  if (!absoluteFilePath(path) || /[\0\r\n]/u.test(path)) return;
+  return { path, offset: start + marker.length, convention };
 }
 export const absoluteFilePath = (path: string): boolean => posix.isAbsolute(path) || win32.isAbsolute(path);
 
-export function blockAttachments(block: Readonly<ContentBlock>, index: number, role: string, kind: string): AttachmentSource[] {
+export function blockAttachments(block: Readonly<ContentBlock>, index: number, role: string, kind: string, toolName?: string): AttachmentSource[] {
   if (block.type === 'file' || block.type === 'image') return [{ selector: `a${index}`, block: index, type: block.type, metadata: { ...block.attachment }, media: block }];
   if (block.type === 'text' && role === 'user') return fileMentions(block.text).map(p => ({ selector: `p${index}:${p.offset}`, block: index, type: 'path', ...p, metadata: { original: p.original, path: p.path, offset: p.offset } }));
   if (block.type === 'tool-call' && ['read', 'read_image'].includes(block.name)) {
     try {
       const args = JSON.parse(block.arguments);
-      if (typeof args.path === 'string' && args.path.length && !args.path.includes('\0')) return [{ selector: `t${index}`, block: index, type: 'path', original: args.path, path: args.path, metadata: { path: args.path, tool: block.name } }];
+      if (!args || typeof args !== 'object' || Array.isArray(args)) return [];
+      const path = args.file_path;
+      if (typeof path === 'string' && path.trim().length && !path.includes('\0')) return [{ selector: `t${index}`, block: index, type: 'path', original: path, path, metadata: { path, tool: block.name } }];
     } catch { /* Malformed old arguments are text, never a guessed file source. */ }
   }
   if (block.type === 'text' && kind === 'tool_result') {
-    const location = spillLocation(block.text);
-    if (location) return [{ selector: `s${index}:${location.offset}`, block: index, type: 'spill', ...location,
-      original: location.path, metadata: { path: location.path, locatorConvention: 'rc.4-local-spill-notice', authenticatedContent: false, originallyDelivered: 'preview_and_locator' } }];
+    const location = spillLocation(block.text, toolName);
+    if (location) return [{ selector: `s${index}:${location.offset}`, block: index, type: 'spill', path: location.path, offset: location.offset,
+      original: location.path, metadata: { path: location.path, locatorConvention: location.convention, authenticatedContent: false, originallyDelivered: 'preview_and_locator' } }];
   }
   return [];
 }
 export function recordAttachments(record: CanonicalRecord): AttachmentSource[] {
-  return record.blocks.flatMap(block => blockAttachments(block.content, block.index, record.role, record.kind));
+  return record.blocks.flatMap(block => blockAttachments(block.content, block.index, record.role, record.kind, record.tool?.name));
 }
 export function attachmentMetadata(sourceRef: string, source: AttachmentSource): AttachmentItem {
   return { ref: `${sourceRef}:${source.selector}`, block: source.block, type: source.type, metadata: source.metadata, state: 'not_checked' };

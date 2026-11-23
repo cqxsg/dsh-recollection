@@ -82,6 +82,7 @@ export function webArguments(options) {
 }
 
 export function webTimeout(options) {
+  if (process.argv.includes('--repair-review')) return 180_000;
   const { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, cursors, referencePages, compactOutput, delivery, budget, search, read, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
   return commandBrowser ? 240_000 : concurrency ? 240_000 : browser || recallBrowser || recallReview || attachmentRead || cursors || referencePages || compactOutput || delivery ? 180_000 : toolsBrowser || recall || deadlines ? 120_000 : history || range || records || preparation || scheduling || tools || budget || search || read ? 90_000 : 45_000;
 }
@@ -90,6 +91,13 @@ export async function verifyWebScenarios(runtime, options) {
   const { commandBrowser, browser, history, range, records, preparation, scheduling, toolsBrowser, protocol, cursors, referencePages, compactOutput, delivery, budget, search, read, attachments, hashes, attachmentScheduling, attachmentRead, recallBrowser, recall, recallReview, concurrency, deadlines, tools } = options;
   const { DIAGNOSTIC_TOOL_NAME } = await import('../../lib/index.js');
   const { ctx } = runtime;
+  if (process.argv.includes('--repair-review')) {
+    const { verifyRepairs } = await import('../integration/repairs-native.mjs');
+    await verifyRepairs(ctx);
+    // Repair scenarios exercise native agent calls. The generic rc.4 smoke below
+    // also invokes a host-private batch shape that changed in newer releases.
+    return;
+  }
   assert.equal(ctx.recallPages.status.implementation, 'phase-5-evaluation');
   assert.ok(ctx.recallHistory);
   assert.ok(ctx.recallPreparation);
@@ -227,5 +235,6 @@ export function verifyWebShutdown(ctx) {
   assert.equal(ctx.get('recallPreparation'), undefined);
   assert.equal(ctx.get('recallDiagnostics'), undefined);
   assert.equal(ctx.get('recallLedger'), undefined);
-  console.log('PASS: isolated rc.4 Web profile, Host scope, index, Client bundle, spill config and shutdown.');
+  console.log(process.argv.includes('--repair-review') ? 'PASS: isolated repair scenarios and clean host shutdown.'
+    : 'PASS: isolated rc.4 Web profile, Host scope, index, Client bundle, spill config and shutdown.');
 }

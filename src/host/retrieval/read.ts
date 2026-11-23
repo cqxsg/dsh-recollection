@@ -12,7 +12,7 @@ import type { CallTimeline } from '../runtime/deadline.js';
 import { recordDocument } from './matcher.js';
 import { PageReferences } from './items.js';
 import { historyPrefix, verifyHistoryCut, sourceFailure } from '../history/sources.js';
-import { effectiveSpill, pageBudget, renderedTokens, unicodeBoundary, verifyOutput } from './output.js';
+import { effectiveSpill, pageBudget, pageTokens, unicodeBoundary, verifyPageOutput } from './output.js';
 import { resultGuidance, type BusinessPage } from '../runtime/control.js';
 import { recordAttachments, type AttachmentSource } from '../attachments/attachments.js';
 import { readAttachment } from '../attachments/attachment-read.js';
@@ -193,7 +193,7 @@ export class RecallReadEngine {
       const result = references.attachment(file.record, await readAttachment(this.ctx, exec.agent!.ctx, state.header, file.record, file.source, this.config, timeline.signal, referencePlaceholder));
       timeline.check();
       const candidate = build([], initialIndex, initialOffset, [...attachmentResults, result], atFile + 1);
-      if (renderedTokens(candidate) > limit) {
+      if (pageTokens(candidate) > limit) {
         if (!attachmentResults.length) throw new RecallError('output_budget_too_small', 'One complete attachment status and its source/cursor exceed the output budget.');
         break;
       }
@@ -211,7 +211,7 @@ export class RecallReadEngine {
         timeline.check();
         if (at >= batchStart + batch.length) {
           // Bound lookahead by both count and remaining page space; large or non-text records load alone.
-          const available = limit - renderedTokens(build([...items, ...pending], at, within));
+          const available = limit - pageTokens(build([...items, ...pending], at, within));
           let chars = state.textChars[at] ?? Infinity, end = at + 1;
           while (end < state.ids.length && end - at < batchLimit && chars + (state.textChars[end] ?? Infinity) <= available) {
             chars += state.textChars[end]!; end++;
@@ -227,7 +227,7 @@ export class RecallReadEngine {
         const record = batch[at - batchStart]!, text = recordDocument(record).body;
         if (within > text.length || unicodeBoundary(text, within) !== within) throw new RecallError('stale_reference', 'Read cursor is outside a Unicode-safe record position.', true);
         const item = references.item(record, text.slice(within), within, text.length, text.length);
-        if (renderedTokens(build([...items, ...pending, item], at + 1, 0)) > limit) { overflow = { record, text }; break; }
+        if (pageTokens(build([...items, ...pending, item], at + 1, 0)) > limit) { overflow = { record, text }; break; }
         pending.push(item); at++; within = 0;
       }
       if (!overflow) { items.push(...pending); index = at; offset = 0; continue; }
@@ -239,7 +239,7 @@ export class RecallReadEngine {
         return { end, item: references.item(record, text.slice(within, end), within, end, text.length) };
       };
       let low = 0, high = text.length - within;
-      while (low < high) { const middle = Math.ceil((low + high) / 2), c = candidate(middle); const endIndex = c.end === text.length ? at + 1 : at; if (renderedTokens(build([c.item], endIndex, c.end === text.length ? 0 : c.end)) <= limit) low = middle; else high = middle - 1; }
+      while (low < high) { const middle = Math.ceil((low + high) / 2), c = candidate(middle); const endIndex = c.end === text.length ? at + 1 : at; if (pageTokens(build([c.item], endIndex, c.end === text.length ? 0 : c.end)) <= limit) low = middle; else high = middle - 1; }
       let c = candidate(low);
       if (c.end < text.length) {
         const tail = c.item.content; const boundary = Math.max(tail.lastIndexOf('\n'), tail.lastIndexOf('。'), tail.lastIndexOf('. '));
@@ -247,9 +247,9 @@ export class RecallReadEngine {
       }
       if (c.end === within && within < text.length) throw new RecallError('output_budget_too_small', 'Required source and read cursor leave no room for even one Unicode scalar.');
       index = c.end === text.length ? at + 1 : at; offset = c.end === text.length ? 0 : c.end;
-      verifyOutput(build([c.item], index, offset), limit); items.push(c.item); break;
+      verifyPageOutput(build([c.item], index, offset), limit); items.push(c.item); break;
     }
-    const result = verifyOutput(build(items, index, offset), limit);
+    const result = verifyPageOutput(build(items, index, offset), limit);
     await references.publish(result, state.sessionId, timeline.signal);
     const fileGaps = new Map(state.fileGaps);
     attachmentResults.forEach((file, i) => { if (file.state === 'accessible') fileGaps.delete(initialFile + i); else fileGaps.set(initialFile + i, file.state); });
@@ -260,7 +260,7 @@ export class RecallReadEngine {
         : { sessionId: state.sessionId, kind: 'read', locator };
       const cursor = await this.ctx.recallCursors.issue(target, timeline.signal);
       timeline.check(); result.nextCursor = cursor.handle;
-      verifyOutput(result, limit);
+      verifyPageOutput(result, limit);
       if (!this.issued.has(cursor.pageId)) {
         let memory = this.cursorMemory.get(state.sessionId);
         if (!memory) {
@@ -271,6 +271,6 @@ export class RecallReadEngine {
       }
     }
     await verifyHistoryCut(this.ctx, state.sessionId, state.cursor, state.fingerprint, timeline);
-    return verifyOutput(result, limit);
+    return verifyPageOutput(result, limit);
   }
 }

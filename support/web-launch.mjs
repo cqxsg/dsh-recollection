@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { isolatedEnvironment } from './isolation.mjs';
 
 /** Shared parent launch; import DSH only in the child after isolation. */
-export async function launchWeb({ label = 'web', persistent = true, patch = [], args = [] } = {}) {
+export async function launchWeb({ label = 'web', persistent = true, patch = [], args = [], nodeArgs = [] } = {}) {
   const run = await isolatedEnvironment(label, { persistent });
   // JSON is a YAML subset and preserves Windows paths without YAML escaping.
   const patchPath = join(run.root, 'recall.patch.yml');
@@ -16,6 +16,7 @@ export async function launchWeb({ label = 'web', persistent = true, patch = [], 
   console.log(`Isolated DSH home: ${run.home}`);
   console.log(`Isolated workspace: ${run.cwd}`);
   const child = spawn(process.execPath, [
+    ...nodeArgs,
     fileURLToPath(new URL('../scripts/dev/web-runtime.mjs', import.meta.url)), patchPath, ...args,
   ], { cwd: run.cwd, env: run.env, stdio: 'inherit', windowsHide: true });
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));

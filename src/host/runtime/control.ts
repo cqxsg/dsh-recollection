@@ -13,22 +13,8 @@ import type {} from '../state/cursors.js';
 
 export interface BusinessPage { result: RecallResult; query?: string; hasMore?: boolean; }
 interface PageClaim { key: string; exec: ToolExecution; reservation: Reservation; resultSeen: boolean; }
-const budgetNotices = {
-  closed: 'Recall closed after the same uncorrected invalid operation; use available history and other tools, or start a new user interaction.',
-  exhausted: 'This interaction has no usable recall budget. Other tools remain available.',
-  shared: 'Shared budget exhausted; only registered queries with remaining free pages can continue.',
-};
-export function resultGuidance(result: RecallResult): RecallResult {
-  // Page sizing and final accounting both render guidance. Refresh only our
-  // own notice, preserving the underlying error and avoiding duplicate notices.
-  const messages = result.message?.split('\n\n').filter(message => !Object.values(budgetNotices).includes(message)) ?? [];
-  if (result.budget.closed) messages.push(budgetNotices.closed);
-  else if (!result.allowed_actions.length) messages.push(budgetNotices.exhausted);
-  else if (!result.budget.shared_remaining) messages.push(budgetNotices.shared);
-  if (messages.length) result.message = messages.join('\n\n');
-  else delete result.message;
-  return result;
-}
+import { resultGuidance } from './guidance.js';
+export { resultGuidance } from './guidance.js';
 export interface ControlOptions {
   names: ReadonlyMap<string, 'search' | 'read'>;
   checkPolicy?(exec: ToolExecution): void;
@@ -207,39 +193,44 @@ export class RecallCallController {
     let result: RecallResult;
     const validationError = reservation.denied ? error : undefined;
     if (reservation.denied) error = reservation.denied;
+    const finalize = (candidate: RecallResult, view: { budget: RecallResult['budget']; allowed_actions: string[] }) =>
+      verifyOutput(resultGuidance({ ...candidate, ...view }), pageBudget(this.config, kind, effectiveSpill(this.ctx, exec)));
+    const canContinue = (candidate: RecallResult) => (id: string) =>
+      id === query && kind === 'search' && !!candidate.nextCursor
+      || (this.options.canContinue?.(exec.agent!, id, id === query && candidate.status === 'ok' ? operation.page : undefined) ?? true);
     if (!error) {
-      let completing = false;
+      let validated = false;
       try {
         pageBudget(this.config, kind, effectiveSpill(this.ctx, exec));
         const page = await this.options.execute(request!, exec, reservation, timeline);
         timeline.check(); query = page.query;
-        // Validate a fully rendered candidate before durable completion/F grant.
-        verifyOutput(page.result, pageBudget(this.config, kind, effectiveSpill(this.ctx, exec)));
-        completing = true;
-        await this.budget.complete(reservation, { success: true, ...(page.query ? { query: page.query } : {}), hasMore: page.hasMore ?? false });
-        result = page.result;
-      } catch (caught) { if (completing) throw caught; error = caught; }
+        return await this.budget.completeWithResult(reservation,
+          { success: true, ...(query ? { query } : {}), hasMore: page.hasMore ?? false }, view => {
+            timeline.check();
+            const output = finalize(page.result, view); validated = true; return output;
+          }, canContinue(page.result));
+      } catch (caught) {
+        // Once validated, a failure may be an uncertain durable write. Never
+        // overwrite it with a second completion or return an uncommitted page.
+        if (validated) throw caught;
+        error = caught;
+      }
     }
-    if (error) {
-      const code = error instanceof Error && 'code' in error ? String(error.code) : timeline.signal.aborted ? 'ABORTED' : 'execution_failed';
-      if (!reservation.denied) await this.budget.complete(reservation, { success: false, code, ...(error instanceof RecallError && error.invalid ? { invalidKey: this.invalidKey(kind, error, request, exec.arguments) } : {}) });
-      const failures = validationError ? [validationError, error] : [error];
-      const recovery = [...new Set(failures.flatMap(failure => failure instanceof RecallError && failure.recovery ? [failure.recovery] : []))].join('\n\n');
-      result = {
-        status: ['business_deadline', 'preparation_timeout', 'ABORTED'].includes(code) ? 'incomplete' : 'error', code,
-        message: [...new Set(failures.map(failure => failure instanceof Error ? failure.message : 'Recall operation failed.'))].join('\n\n'),
-        ...(recovery ? { recovery } : {}),
-        ...(kind === 'search' ? { scanComplete: false } : { readComplete: false }), items: [],
-        budget: this.budget.summary(reservation.interaction, query), allowed_actions: [],
-      };
-    }
-    result!.budget = this.budget.summary(reservation.interaction, query);
-    result!.allowed_actions = this.budget.allowed(reservation.interaction, query, id =>
-      id === query && kind === 'search' && !!result!.nextCursor
-      || (this.options.canContinue?.(exec.agent!, id, id === query && result!.status === 'ok' ? operation.page : undefined) ?? true));
-    resultGuidance(result!);
-    verifyOutput(result!, pageBudget(this.config, kind, effectiveSpill(this.ctx, exec)));
-    return result!;
+    const code = error instanceof Error && 'code' in error ? String(error.code) : timeline.signal.aborted ? 'ABORTED' : 'execution_failed';
+    const failures = validationError ? [validationError, error] : [error];
+    const recovery = [...new Set(failures.flatMap(failure => failure instanceof RecallError && failure.recovery ? [failure.recovery] : []))].join('\n\n');
+    result = {
+      status: ['business_deadline', 'preparation_timeout', 'ABORTED'].includes(code) ? 'incomplete' : 'error', code,
+      message: [...new Set(failures.map(failure => failure instanceof Error ? failure.message : 'Recall operation failed.'))].join('\n\n'),
+      ...(recovery ? { recovery } : {}),
+      ...(kind === 'search' ? { scanComplete: false } : { readComplete: false }), items: [],
+      budget: this.budget.summary(reservation.interaction, query), allowed_actions: [],
+    };
+    if (reservation.denied) return finalize(result, { budget: this.budget.summary(reservation.interaction, query),
+      allowed_actions: this.budget.allowed(reservation.interaction, query, canContinue(result)) });
+    return this.budget.completeWithResult(reservation, { success: false, code, ...(query ? { query } : {}),
+      ...(error instanceof RecallError && error.invalid ? { invalidKey: this.invalidKey(kind, error, request, exec.arguments) } : {}) },
+      view => finalize(result, view), canContinue(result));
   }
   private invalidKey(kind: string, error: RecallError, request: SearchRequest | ReadRequest | undefined, raw: unknown): string {
     if (error.invalidIdentity) return `${kind}:${error.code}:${error.invalidIdentity}`;

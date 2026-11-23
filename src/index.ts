@@ -26,10 +26,11 @@ export { searchInput, readInput, parseRequest, recallResult, nativeSchema, input
 export { queryTermsId, logicalQueryId } from './host/retrieval/references.js';
 export { RecallReferenceStore, recordLocator, recordLocatorSchema, recordKey, referenceHandle, referencePlaceholder, referenceRecord, referenceDomainSpec, type RecordLocator, type ReferenceRecord } from './host/state/reference-store.js';
 export { RecallCursorStore, cursorDomainSpec, cursorRecord, cursorPageId, cursorPlaceholder, type CursorTarget, type CursorRecord } from './host/state/cursors.js';
-export { effectiveSpill, pageBudget, renderRecall, renderedTokens, verifyOutput } from './host/retrieval/output.js';
+export { effectiveSpill, pageBudget, renderRecall, renderedTokens, verifyOutput, pageTokens, verifyPageOutput } from './host/retrieval/output.js';
 export { RecallBudgetService, businessLedgerRecord, businessLedgerSpec, type Reservation, type Operation } from './host/state/budget.js';
 export { CallTimeline } from './host/runtime/deadline.js';
 export { RecallCallController, type ControlOptions, type BusinessPage } from './host/runtime/control.js';
+export { resultGuidance, completionEnvelope } from './host/runtime/guidance.js';
 export { NativeMatcher, RG_VERSION, recordDocument, type RecordMatch, type MatchSpan } from './host/retrieval/matcher.js';
 export { POOL_LIMITS, WORKER_LIMITS } from './host/retrieval/worker.js';
 export { startPerformanceCapture, performanceDiagnostics, type PerformanceCapture } from './host/runtime/performance.js';
@@ -40,6 +41,7 @@ export { attachmentItem, attachmentResult, type AttachmentItem, type AttachmentR
 export { HashComputation, hashCurrent, HASH_CHUNK_BYTES, HASH_SLICE_MS } from './host/attachments/hashing.js';
 export { RecallHashLedger, hashRecord, hashLedgerSpec, hashKey, hashSource, type HashRecord, type HashSource } from './host/attachments/hash-ledger.js';
 export { RecallAttachmentService, nativeHashSources, recordHashSource } from './host/attachments/attachment-service.js';
+export { historicalDirectory, toolDirectory } from './host/attachments/historical-directory.js';
 export { RecallToolsService, SEARCH_DESCRIPTION, READ_DESCRIPTION, RECALL_USAGE } from './host/tools.js';
 export { indexHistoryRecords, fingerprintHistory } from './host/history/records.js';
 export { currentInteraction, resolveCallIdentity } from './host/runtime/identity.js';

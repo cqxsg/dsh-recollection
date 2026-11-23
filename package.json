@@ -1,6 +1,6 @@
 {
   "name": "dsh-recollection",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "Apache-2.0",
   "description": "Autonomous conversation recall plugin for DeepSeek Harness",
   "repository": {
@@ -103,6 +103,7 @@
     "test:matcher": "npm run build && node test/runners/test-matcher.mjs",
     "test:search": "npm run build && node test/runners/web.mjs --search",
     "test:read": "npm run build && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs",
+    "test:repairs": "npm run build && node test/runners/test-repairs.mjs",
     "test:attachments": "npm run build && node test/runners/web.mjs --attachments",
     "test:hashes": "npm run build && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs",
     "test:attachment-scheduling": "npm run build && node test/runners/web.mjs --attachment-scheduling",
@@ -114,7 +115,7 @@
     "test:recall:browser": "npm run build && node test/runners/web.mjs --recall-browser && node test/runners/web.mjs --recall-command-browser",
     "test:tools:browser": "npm run build && node test/runners/web.mjs --tools-browser",
     "test:recovery": "npm run build && node test/runners/test-recovery.mjs",
-    "check": "npm test && node test/runners/web.mjs --history && node test/runners/web.mjs --range && node test/runners/web.mjs --records && node test/runners/test-prewarm.mjs && node test/runners/test-runtime-lifecycle.mjs && node test/runners/test-runtime-capabilities.mjs && node test/runners/web.mjs --preparation && node test/runners/web.mjs --scheduling && node test/runners/web.mjs --tools && node test/runners/test-recovery.mjs && node test/runners/web.mjs --protocol && node test/runners/test-reference-store.mjs && node test/runners/test-reference-recovery.mjs && node test/runners/web.mjs --compact-output && node test/runners/web.mjs --reference-pages && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs && node test/runners/web.mjs --delivery && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs && node test/runners/test-matcher.mjs && node test/runners/web.mjs --search && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/web.mjs --attachments && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs && node test/runners/web.mjs --attachment-scheduling && node test/runners/web.mjs --attachment-read && node test/runners/test-attachment-lifecycle.mjs && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs && node test/runners/web.mjs --recall-command-browser",
+    "check": "npm test && node test/runners/test-repairs.mjs && node test/runners/web.mjs --history && node test/runners/web.mjs --range && node test/runners/web.mjs --records && node test/runners/test-prewarm.mjs && node test/runners/test-runtime-lifecycle.mjs && node test/runners/test-runtime-capabilities.mjs && node test/runners/web.mjs --preparation && node test/runners/web.mjs --scheduling && node test/runners/web.mjs --tools && node test/runners/test-recovery.mjs && node test/runners/web.mjs --protocol && node test/runners/test-reference-store.mjs && node test/runners/test-reference-recovery.mjs && node test/runners/web.mjs --compact-output && node test/runners/web.mjs --reference-pages && node test/runners/web.mjs --cursors && node test/runners/test-cursor-recovery.mjs && node test/runners/web.mjs --delivery && node test/runners/web.mjs --budget && node test/runners/test-budget-recovery.mjs && node test/runners/test-matcher.mjs && node test/runners/web.mjs --search && node test/runners/web.mjs --read && node test/runners/test-read-recovery.mjs && node test/runners/web.mjs --recall && node test/runners/web.mjs --recall-review && node test/runners/web.mjs --recall-concurrency && node test/runners/test-recall-recovery.mjs && node test/runners/test-feedback-recovery.mjs && node test/runners/web.mjs --recall-deadlines && node test/runners/web.mjs --attachments && node test/runners/web.mjs --hashes && node test/runners/test-hash-recovery.mjs && node test/runners/web.mjs --attachment-scheduling && node test/runners/web.mjs --attachment-read && node test/runners/test-attachment-lifecycle.mjs && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs && node test/runners/web.mjs --recall-command-browser",
     "dev:web": "npm run build && node scripts/dev/dev-web.mjs",
     "prepack": "npm run build",
     "generate": "node scripts/build/generate-remote.mjs",

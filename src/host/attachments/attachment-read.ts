@@ -13,8 +13,8 @@ import type { AttachmentResult } from '../protocol.js';
 
 /** User-facing offsets in a command refer to its argument. Durable file samples use the native message offset. */
 async function pathBinding(ctx: Context, header: SessionHeader, record: CanonicalRecord, source: AttachmentSource, signal: AbortSignal) {
-  if (record.origin.contentPath !== commandInputPath) return recordHashSource(header, record, source);
   return ctx.recallHistory.withSnapshot(header.id, snapshot => {
+    if (record.origin.contentPath !== commandInputPath) return recordHashSource(header, record, source, snapshot.events, snapshot.inheritedEventCount);
     const event = snapshot.events[record.origin.seq], block = record.blocks[0]?.content;
     if (event?.type !== 'user/message' || event.data.id !== record.origin.messageId || block?.type !== 'text'
       || recallCommandInput(event.data.source) !== block.text || source.offset === undefined) return;
@@ -23,7 +23,7 @@ async function pathBinding(ctx: Context, header: SessionHeader, record: Canonica
     const start = raw.text.indexOf(block.text);
     if (start < 0 || start !== raw.text.lastIndexOf(block.text)) return;
     const selector = `p0:${start + source.offset}`;
-    return nativeHashSources(header, event).find(binding => binding.selector === selector && binding.path === source.path);
+    return nativeHashSources(header, event, snapshot.events, snapshot.inheritedEventCount).find(binding => binding.selector === selector && binding.path === source.path);
   }, signal, { waitForQuiescence: true });
 }
 
@@ -34,19 +34,20 @@ export async function readAttachment(ctx: Context, fileContext: Context, header:
   let baselineUnavailable = false;
   if (source.type === 'path') {
     try {
+      binding = await pathBinding(ctx, header, record, source, signal);
       const hashes = ctx.get('recallHashes');
       baselineUnavailable = !hashes;
       if (hashes) {
-        binding = await pathBinding(ctx, header, record, source, signal);
         row = binding && hashes.get(hashKey(binding));
         baselineUnavailable = !binding;
       }
     } catch { signal.throwIfAborted(); baselineUnavailable = true; }
   }
-  const baseline = row && argumentsHash(row.source) === argumentsHash(binding) ? row : undefined;
+  let baseline = row && argumentsHash(row.source) === argumentsHash(binding) ? row : undefined;
   // A child header describes the child's cwd, not the cwd of its inherited events.
-  const cwd = record.origin.inherited ? undefined : header.cwd;
-  let access = await accessAttachment(fileContext, source, cwd, signal, baseline?.resolvedPath);
+  const cwd = record.origin.inherited ? undefined : binding?.cwd;
+  let access = await accessAttachment(fileContext, source, cwd, signal);
+  if (baseline?.resolvedPath && access.path && baseline.resolvedPath !== access.path) baseline = undefined;
   let version: AttachmentResult['version'] = { state: 'unverified', reason: access.reason ?? 'no_historical_baseline' };
   if (access.state === 'accessible') {
     if (source.media?.type === 'image') version = { state: 'native_identity', reason: 'native_normalized_image_reference' };
@@ -60,7 +61,7 @@ export async function readAttachment(ctx: Context, fileContext: Context, header:
         } else {
           version = { state: 'unverified', reason: verification.reason ?? 'hash_verification_failed', ...(baseline?.sample ? { baselineAt: baseline.sample.completedAt } : {}) };
           // Missing/denied after the first probe must not retain a false usable path.
-          access = await accessAttachment(fileContext, source, cwd, signal, baseline?.resolvedPath);
+          access = await accessAttachment(fileContext, source, cwd, signal);
         }
       } else version = { state: 'unverified', reason: source.type === 'spill' ? 'original_spill_locator_without_digest'
         : baselineUnavailable ? 'baseline_unavailable' : row && !baseline ? 'baseline_source_mismatch' : baseline?.state === 'failed' ? baseline.reason ?? 'baseline_failed'

@@ -4,6 +4,7 @@ import type { ToolExecution } from '@deepseek-ai/dsh-tools';
 import { RecallError, recallResult, type RecallResult } from '../protocol.js';
 import type { RecallConfig } from '../runtime/config.js';
 import { policyFibers, policyActive } from '../runtime/policies.js';
+import { completionEnvelope } from '../runtime/guidance.js';
 
 export type SpillBudget = { state: 'enabled'; tokens: number } | { state: 'disabled' } | { state: 'unknown'; reason: string };
 /** Read all applicable mounted native spill policies. Never infer from a config file. */
@@ -27,6 +28,12 @@ export function pageBudget(config: RecallConfig, tool: 'search' | 'read', spill:
 }
 export const renderRecall = (value: RecallResult) => [{ type: 'text' as const, text: JSON.stringify(value) }];
 export const renderedTokens = (value: RecallResult) => estimateContent(renderRecall(value));
+export const pageTokens = (value: RecallResult) => renderedTokens(completionEnvelope(value));
+export function verifyPageOutput(value: RecallResult, budget: number): RecallResult {
+  verifyOutput(value, budget);
+  if (pageTokens(value) > budget) throw new RecallError('output_budget_too_small', 'The page and its final completion metadata do not fit the effective page budget.');
+  return value;
+}
 export const textTokens = (text: string) => estimateContent([{ type: 'text', text }]);
 export function verifyOutput(value: RecallResult, budget: number): RecallResult {
   recallResult.parse(value);

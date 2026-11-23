@@ -37,6 +37,8 @@ export const businessLedgerSpec = defineDomain({ name: 'dsh_recall_business', ve
 export interface Operation { kind: 'search' | 'next' | 'read'; query?: string; page?: string; valid?: boolean; }
 interface InvalidFeedback { readonly keys: ReadonlySet<string>; readonly legacyCodes: ReadonlySet<string>; }
 export interface Reservation { readonly key: string; readonly interaction: InteractionIdentity; readonly call: CallIdentity; readonly operation: Operation; readonly denied?: RecallError; readonly invalidFeedback: InvalidFeedback; }
+export interface CompletionView { budget: BudgetSummary; allowed_actions: string[]; }
+interface CompletionOutcome { code?: string; invalidKey?: string; query?: string; hasMore?: boolean; success: boolean; }
 declare module '@deepseek-ai/cordis' { interface Context { recallBudget: RecallBudgetService; } }
 
 /** Authoritative S/R/F and call state. Bodies/results never enter this domain. */
@@ -74,11 +76,17 @@ export class RecallBudgetService extends Service {
   summary(identity: InteractionIdentity, queryId?: string): BudgetSummary {
     const r = this.table.get(interactionKey(identity));
     if (!r) throw new RecallError('ledger_missing', 'No authoritative budget exists for this interaction.');
+    return this.summaryRecord(r, queryId);
+  }
+  private summaryRecord(r: BusinessLedgerRecord, queryId?: string): BudgetSummary {
     return { revision: r.revision, search_remaining: r.searches, shared_remaining: r.shared, query_pages_remaining: r.queries.find(q => q.id === queryId)?.free ?? 0,
       paid_pages_remaining: r.limits.paidPages - r.paidPages, actual_calls: r.actualCalls, closed: r.closed };
   }
   allowed(identity: InteractionIdentity, queryId?: string, canContinue: (queryId: string) => boolean = () => true): string[] {
     const r = this.table.get(interactionKey(identity));
+    return this.allowedRecord(r, queryId, canContinue);
+  }
+  private allowedRecord(r: BusinessLedgerRecord | undefined, queryId?: string, canContinue: (queryId: string) => boolean = () => true): string[] {
     if (!r || r.closed) return [];
     const actions: string[] = [];
     if (r.shared && r.searches) actions.push('search', 'attach_old_search');
@@ -168,10 +176,19 @@ export class RecallBudgetService extends Service {
       if (!r.queries.some(q => q.id === queryId)) r.queries.push({ id: queryId, free: 0, granted: false, complete: false });
     });
   }
-  complete(reservation: Reservation, outcome: { code?: string; invalidKey?: string; query?: string; hasMore?: boolean; success: boolean }): Promise<void> {
-    return this.change(reservation, r => {
+  complete(reservation: Reservation, outcome: CompletionOutcome): Promise<void> {
+    return this.completeWithResult(reservation, outcome, () => undefined);
+  }
+  /** Validate a synchronous result against the proposed completion, then persist.
+   * No history/file IO or page construction belongs inside this short serial section. */
+  completeWithResult<T>(reservation: Reservation, outcome: CompletionOutcome, render: (view: CompletionView) => T,
+    canContinue: (queryId: string) => boolean = () => true): Promise<T> {
+    return this.serial(reservation.key, async () => {
+      const original = this.table.get(reservation.key);
+      if (!original) throw new RecallError('ledger_missing', 'Authoritative budget disappeared.');
+      const r = structuredClone(original);
       const c = r.calls.find(c => c.eventSeq === reservation.call.eventSeq)!;
-      if (c.state !== 'reserved') throw new RecallError('ledger_invalid', 'Completion has no active reservation.');
+      if (!c || c.state !== 'reserved') throw new RecallError('ledger_invalid', 'Completion has no active reservation.');
       c.state = outcome.success ? 'completed' : 'failed'; c.code = outcome.code ?? 'OK';
       if (outcome.invalidKey) this.invalid(r, c, outcome.invalidKey, reservation.invalidFeedback);
       const q = r.queries.find(q => q.id === (outcome.query ?? c.query));
@@ -179,7 +196,11 @@ export class RecallBudgetService extends Service {
         q.complete = true;
         if (outcome.hasMore && !q.granted) { q.free = r.limits.freePages; q.granted = true; }
       }
-    });
+      r.revision++;
+      const result = render({ budget: this.summaryRecord(r, outcome.query), allowed_actions: this.allowedRecord(r, outcome.query, canContinue) });
+      await this.put(reservation.key, r);
+      return result;
+    }, true);
   }
   private invalid(r: BusinessLedgerRecord, call: BusinessLedgerRecord['calls'][number], key: string, feedback: InvalidFeedback) {
     call.invalidKey = key;

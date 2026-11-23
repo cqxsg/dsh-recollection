@@ -8,10 +8,13 @@ export const human = text => createUserMessage({ source: { kind: 'user' }, conte
 export const recovery = () => createUserMessage({ source: { kind: 'recall-test-recovery' }, content: [{ type: 'text', text: 'Resume the existing work' }] });
 
 /** Only the provider stream is scripted; inbox, loop, logs and tools are native. */
-export function scriptedModel(ctx) {
+export function scriptedModel(ctx, capabilities = {}) {
   const replies = [];
   const requests = [];
   class FixtureAdapter extends LlmAdapter {
+    async resolveModel(...args) {
+      return { ...await super.resolveModel(...args), ...(capabilities.inputModalities ? { inputModalities: capabilities.inputModalities } : {}) };
+    }
     async *stream() { yield { type: 'finish', reason: { kind: 'stop' } }; }
   }
   // The marker belongs to the pre-projection request at this public waterfall.

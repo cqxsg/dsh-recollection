@@ -1,7 +1,8 @@
 import { Service, type Context } from '@deepseek-ai/cordis';
 import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session';
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
-import { blockAttachments, type AttachmentSource } from './attachments.js';
+import { absoluteFilePath, blockAttachments, type AttachmentSource } from './attachments.js';
+import { historicalDirectory, resultDeclarations, toolDirectory } from './historical-directory.js';
 import { argumentsHash } from '../runtime/identity.js';
 import { hashKey, type HashSource } from './hash-ledger.js';
 import type { CanonicalRecord } from '../history/records.js';
@@ -9,32 +10,36 @@ import type {} from '../history/preparation.js';
 import type {} from '../history/history.js';
 import { RecallError } from '../protocol.js';
 
-function sourceBinding(header: SessionHeader, seq: number, time: number, messageId: string, sourceKind: string, content: Readonly<ContentBlock>, source: AttachmentSource): HashSource {
+function sourceBinding(header: SessionHeader, seq: number, time: number, messageId: string, sourceKind: string, content: Readonly<ContentBlock>, source: AttachmentSource, cwd?: string): HashSource {
+  if (absoluteFilePath(source.path!)) cwd = header.cwd; // Absolute identity never depends on directory transitions.
   return { sessionId: header.id, seq, messageId, block: source.block, selector: source.selector,
     fingerprint: argumentsHash([header, seq, time, messageId, sourceKind, source.block, source.selector, content]),
-    referenceText: source.original!, path: source.path!, ...(header.cwd ? { cwd: header.cwd } : {}), recordedAt: time };
+    referenceText: source.original!, path: source.path!, ...(cwd ? { cwd } : {}), recordedAt: time };
 }
-export function nativeHashSources(header: SessionHeader, event: SessionEvent): HashSource[] {
+export function nativeHashSources(header: SessionHeader, event: SessionEvent, events: readonly SessionEvent[] = [], inherited = 0): HashSource[] {
   if (event.surfaceOp !== 'append') return [];
   if (event.type === 'user/message' && event.data.source.kind === 'user') {
     return event.data.content.flatMap((block, index) => blockAttachments(block, index, 'user', 'message')
-      .filter(a => a.type === 'path').map(a => sourceBinding(header, event.seq, event.time, event.data.id, event.data.source.kind, block, a)));
+      .filter(a => a.type === 'path').map(a => sourceBinding(header, event.seq, event.time, event.data.id, event.data.source.kind, block, a, historicalDirectory(header, events, event.seq, inherited))));
   }
   if (event.type === 'assistant/message') {
     return event.data.message.content.flatMap((block, index) => blockAttachments(block, index, 'assistant', 'tool_call')
-      .filter(a => a.type === 'path').map(a => sourceBinding(header, event.seq, event.time, event.data.message.id, event.data.message.source.kind, block, a)));
+      .filter(a => a.type === 'path').map(a => sourceBinding(header, event.seq, event.time, event.data.message.id, event.data.message.source.kind, block, a,
+        block.type === 'tool-call' ? toolDirectory(header, events, event, block.id, inherited) : undefined)));
   }
   return [];
 }
-export function recordHashSource(header: SessionHeader, record: CanonicalRecord, source: AttachmentSource): HashSource {
+export function recordHashSource(header: SessionHeader, record: CanonicalRecord, source: AttachmentSource, events: readonly SessionEvent[] = [], inherited = 0): HashSource {
+  const block = record.blocks.find(b => b.index === source.block)!.content;
+  const event = events[record.origin.seq];
   return sourceBinding(header, record.origin.seq, record.origin.time, record.origin.messageId, record.origin.sourceKind,
-    record.blocks.find(b => b.index === source.block)!.content, source);
+    block, source, block.type === 'tool-call' && event ? toolDirectory(header, events, event, block.id, inherited) : historicalDirectory(header, events, record.origin.seq, inherited));
 }
 declare module '@deepseek-ai/cordis' { interface Context { recallAttachments: RecallAttachmentService; } }
 
 /** Listens only to new post-commit native events. Cold reads never create baselines. */
 export class RecallAttachmentService extends Service {
-  static inject = ['recallHashes', 'recallPreparation', 'recallHistory', 'sessions'];
+  static inject = ['recallHashes', 'recallPreparation', 'recallHistory', 'sessions', 'fs'];
   private readonly seen = new WeakMap<Session, number>();
   private readonly pending = new Set<Promise<unknown>>();
   private readonly jobs = new Map<string, () => void>();
@@ -53,7 +58,14 @@ export class RecallAttachmentService extends Service {
       const previous = this.seen.get(session) ?? event.seq - 1;
       if (event.seq <= previous || event.seq < session.inheritedEventCount || this.lifetime.signal.aborted) return;
       this.seen.set(session, event.seq);
-      const sources = nativeHashSources(session.header, event);
+      if (!['user/message', 'assistant/message', 'tool/result'].includes(event.type)) return;
+      const events = session.snapshotEvents();
+      const sources = event.type === 'tool/result'
+        ? resultDeclarations(events, event).filter(e => e.seq >= session.inheritedEventCount).flatMap(e => nativeHashSources(session.header, e, events, session.inheritedEventCount).filter(s => {
+          const block = e.data.message.content[s.block];
+          return !absoluteFilePath(s.path) && block?.type === 'tool-call' && block.id === event.data.message.toolCallId;
+        }))
+        : nativeHashSources(session.header, event, events, session.inheritedEventCount).filter(s => event.type !== 'assistant/message' || absoluteFilePath(s.path));
       if (!sources.length) return;
       const work = Promise.resolve().then(async () => {
         this.lifetime.signal.throwIfAborted();
@@ -88,9 +100,13 @@ export class RecallAttachmentService extends Service {
         try {
           const matches = await this.ctx.recallHistory.withSnapshot(row.source.sessionId as SessionId, (snapshot, scope) => {
             scope.throwIfAborted(); const event = snapshot.events[row.source.seq];
-            return event && event.seq >= snapshot.inheritedEventCount && nativeHashSources(snapshot.header, event).some(source => argumentsHash(source) === argumentsHash(row.source));
+            return event && event.seq >= snapshot.inheritedEventCount && nativeHashSources(snapshot.header, event, snapshot.events, snapshot.inheritedEventCount).some(source => argumentsHash(source) === argumentsHash(row.source));
           }, signal, { waitForQuiescence: true });
           if (!matches) throw new RecallError('hash_source_changed', 'Registered native reference no longer matches.');
+          if (row.resolvedPath) {
+            const target = await this.ctx.fs.resolve(row.source.path, { ...(row.source.cwd ? { cwd: row.source.cwd } : {}), signal });
+            if (this.ctx.fs.processPath(target) !== row.resolvedPath) throw new RecallError('hash_source_changed', 'Resolved baseline path no longer matches its historical source.');
+          }
           verified = true;
         } catch (error) {
           signal.throwIfAborted();

@@ -10,7 +10,7 @@ import type { Reservation } from '../state/budget.js';
 import type { RecallConfig } from '../runtime/config.js';
 import { NativeMatcher, recordDocument, type RecordMatch } from './matcher.js';
 import type { CallTimeline } from '../runtime/deadline.js';
-import { effectiveSpill, pageBudget, renderedTokens, verifyOutput } from './output.js';
+import { effectiveSpill, pageBudget, pageTokens, verifyPageOutput } from './output.js';
 import { resultGuidance, type BusinessPage } from '../runtime/control.js';
 import { previewWindow, PageReferences } from './items.js';
 import { verifyHistoryCut } from '../history/sources.js';
@@ -154,24 +154,24 @@ export class RecallSearchEngine {
         return value;
       };
       let candidate = item(this.config.previewTokens);
-      if (renderedTokens(build([...items, candidate], end + 1)) > limit) {
+      if (pageTokens(build([...items, candidate], end + 1)) > limit) {
         if (items.length) break;
         let low = 0, high = this.config.previewTokens;
-        while (low < high) { const middle = Math.ceil((low + high) / 2); if (renderedTokens(build([item(middle)], end + 1)) <= limit) low = middle; else high = middle - 1; }
+        while (low < high) { const middle = Math.ceil((low + high) / 2); if (pageTokens(build([item(middle)], end + 1)) <= limit) low = middle; else high = middle - 1; }
         candidate = item(low);
-        verifyOutput(build([candidate], end + 1), limit);
+        verifyPageOutput(build([candidate], end + 1), limit);
       }
       items.push(candidate); end++;
     }
-    const result = verifyOutput(build(items, end), limit);
+    const result = verifyPageOutput(build(items, end), limit);
     await references.publish(result, query.sessionId, timeline.signal);
     if (result.nextCursor) {
       const cursor = await this.ctx.recallCursors.issue({ sessionId: query.sessionId, kind: 'search', locator: { queryId: query.id, order, index: end } }, timeline.signal);
       timeline.check(); result.nextCursor = cursor.handle;
-      verifyOutput(result, limit);
+      verifyPageOutput(result, limit);
       if (!query.issued.has(cursor.pageId)) { query.memory?.add(32 + retainedBytes(cursor.pageId)); query.issued.add(cursor.pageId); }
     }
     await verifyHistoryCut(this.ctx, query.sessionId, query.cursor, query.fingerprint, timeline);
-    return verifyOutput(result, limit);
+    return verifyPageOutput(result, limit);
   }
 }

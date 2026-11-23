@@ -24,7 +24,7 @@ export async function verifyAttachments(ctx) {
     assert.notEqual(refs[0].offset, refs[2].offset);
     assert.equal(fileMentions('@"unfinished name').length, 0);
     assert.equal(blockAttachments(text('@x'), 0, 'assistant', 'message').length, 0);
-    assert.equal(blockAttachments({ type: 'tool-call', name: 'read', id: 'c', arguments: '{"path":"relative.txt"}' }, 3, 'assistant', 'tool_call')[0].path, 'relative.txt');
+    assert.equal(blockAttachments({ type: 'tool-call', name: 'read', id: 'c', arguments: '{"file_path":"relative.txt"}' }, 3, 'assistant', 'tool_call')[0].path, 'relative.txt');
   });
   await check('archived file, normalized image and old spill use native execution paths without copies', async () => {
     for (const [type, attachment, expected] of [['file', file, ctx.attachments.fileHostPath(file)], ['image', image, ctx.attachments.imageHostPath(image)]]) {

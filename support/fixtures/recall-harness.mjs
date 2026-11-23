@@ -4,12 +4,12 @@ import { waitForRecall } from '../wait-for-recall.mjs';
 import { createHistoryFixture } from './history.mjs';
 import { rangeFixture, text } from './range.mjs';
 
-export function recallHarness(ctx) {
-  const model = scriptedModel(ctx), agents = [];
+export function recallHarness(ctx, capabilities, historyFixture = createHistoryFixture) {
+  const model = scriptedModel(ctx, capabilities), agents = [];
   let serial = 0;
   async function seed(id, bodies = ['needle original']) {
     await waitForRecall(ctx);
-    const fixture = await createHistoryFixture(ctx, id, []), f = rangeFixture(fixture.session);
+    const fixture = await historyFixture(ctx, id, []), f = rangeFixture(fixture.session);
     f.append('turn/start', { turn: 1 }); f.append('step/start', { turn: 1, step: 1 });
     f.append('system/message', { turn: 1, step: 1, message: { id: `${id}-system`, role: 'system', source: { kind: 'system-prompt' }, content: [text('fixture system')] } }, { surfaceOp: 'append' });
     bodies.forEach(body => f.user([text(body)]));
