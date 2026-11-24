@@ -1,7 +1,8 @@
 import { Service, type Context } from '@deepseek-ai/cordis';
 import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session';
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
-import { absoluteFilePath, blockAttachments, type AttachmentSource } from './attachments.js';
+import { blockAttachments, type AttachmentSource } from './attachments.js';
+import { fullyQualifiedWindowsPath, historicalPathAvailable } from './historical-path.js';
 import { historicalDirectory, resultDeclarations, toolDirectory } from './historical-directory.js';
 import { argumentsHash } from '../runtime/identity.js';
 import { hashKey, type HashSource } from './hash-ledger.js';
@@ -11,7 +12,8 @@ import type {} from '../history/history.js';
 import { RecallError } from '../protocol.js';
 
 function sourceBinding(header: SessionHeader, seq: number, time: number, messageId: string, sourceKind: string, content: Readonly<ContentBlock>, source: AttachmentSource, cwd?: string): HashSource {
-  if (absoluteFilePath(source.path!)) cwd = header.cwd; // Absolute identity never depends on directory transitions.
+  // Preserve published bindings only for genuinely cwd-independent paths.
+  if (fullyQualifiedWindowsPath(source.path!)) cwd = header.cwd;
   return { sessionId: header.id, seq, messageId, block: source.block, selector: source.selector,
     fingerprint: argumentsHash([header, seq, time, messageId, sourceKind, source.block, source.selector, content]),
     referenceText: source.original!, path: source.path!, ...(cwd ? { cwd } : {}), recordedAt: time };
@@ -63,9 +65,9 @@ export class RecallAttachmentService extends Service {
       const sources = event.type === 'tool/result'
         ? resultDeclarations(events, event).filter(e => e.seq >= session.inheritedEventCount).flatMap(e => nativeHashSources(session.header, e, events, session.inheritedEventCount).filter(s => {
           const block = e.data.message.content[s.block];
-          return !absoluteFilePath(s.path) && block?.type === 'tool-call' && block.id === event.data.message.toolCallId;
+          return !fullyQualifiedWindowsPath(s.path) && block?.type === 'tool-call' && block.id === event.data.message.toolCallId;
         }))
-        : nativeHashSources(session.header, event, events, session.inheritedEventCount).filter(s => event.type !== 'assistant/message' || absoluteFilePath(s.path));
+        : nativeHashSources(session.header, event, events, session.inheritedEventCount).filter(s => event.type !== 'assistant/message' || fullyQualifiedWindowsPath(s.path));
       if (!sources.length) return;
       const work = Promise.resolve().then(async () => {
         this.lifetime.signal.throwIfAborted();
@@ -102,7 +104,7 @@ export class RecallAttachmentService extends Service {
             scope.throwIfAborted(); const event = snapshot.events[row.source.seq];
             return event && event.seq >= snapshot.inheritedEventCount && nativeHashSources(snapshot.header, event, snapshot.events, snapshot.inheritedEventCount).some(source => argumentsHash(source) === argumentsHash(row.source));
           }, signal, { waitForQuiescence: true });
-          if (!matches) throw new RecallError('hash_source_changed', 'Registered native reference no longer matches.');
+          if (!matches || !historicalPathAvailable(row.source.path, row.source.cwd)) throw new RecallError('hash_source_changed', 'Registered native reference no longer has a verifiable historical target.');
           if (row.resolvedPath) {
             const target = await this.ctx.fs.resolve(row.source.path, { ...(row.source.cwd ? { cwd: row.source.cwd } : {}), signal });
             if (this.ctx.fs.processPath(target) !== row.resolvedPath) throw new RecallError('hash_source_changed', 'Resolved baseline path no longer matches its historical source.');

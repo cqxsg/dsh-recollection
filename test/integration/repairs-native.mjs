@@ -36,6 +36,10 @@ export async function verifyRepairs(ctx) {
     }); } finally { cache.dispose(); }
   };
   try {
+    if (selected?.some(id => ['B01', 'B02'].includes(id))) {
+      const { verifyWindowsPathRepairs } = await import('../attachments/windows-path-native.mjs');
+      await verifyWindowsPathRepairs(ctx, h);
+    }
     await check('F02', async fixed => {
       const b = join(process.cwd(), 'changed'), c = join(process.cwd(), 'later');
       await Promise.all([b, c].map(p => mkdir(p, { recursive: true })));

@@ -20,6 +20,7 @@ const child = spawn(process.execPath, [
   fileURLToPath(new URL('../state/pages.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../state/completion-output.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../attachments/historical-directory.test.mjs', import.meta.url)),
+  fileURLToPath(new URL('../attachments/windows-path.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../attachments/tool-path.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../attachments/spill-path.test.mjs', import.meta.url)),
   fileURLToPath(new URL('../runtime/scheduler.test.mjs', import.meta.url)),

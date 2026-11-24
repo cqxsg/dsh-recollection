@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { argumentsHash } from '../runtime/identity.js';
 import type { RecallConfig } from '../runtime/config.js';
 import { RecallError } from '../protocol.js';
-import { absoluteFilePath } from './attachments.js';
+import { historicalPathAvailable } from './historical-path.js';
 import { HashComputation, HashSliceEnd, hashSlice, hashReason, retryHash, HASH_SLICE_MS } from './hashing.js';
 
 const text = z.string().min(1), n = z.number().int().nonnegative();
@@ -70,7 +70,7 @@ export class RecallHashLedger extends Service {
       }
       const value: HashRecord = { version: 1, source: parsed, revision: 0, registeredAt: Date.now(),
         limits: { attempts: this.config.hashAttempts, activeMs: this.config.hashActiveMs }, attempts: 0, spentMs: 0, state: 'pending' };
-      if (!absoluteFilePath(source.path) && !source.cwd) { value.state = 'failed'; value.reason = 'historical_working_directory_unavailable'; }
+      if (!historicalPathAvailable(source.path, source.cwd)) { value.state = 'failed'; value.reason = 'historical_working_directory_unavailable'; }
       else {
         try {
           const target = await this.ctx.fs.resolve(source.path, { ...(source.cwd ? { cwd: source.cwd } : {}), signal: this.lifetime.signal });
@@ -95,6 +95,12 @@ export class RecallHashLedger extends Service {
         value.state = 'pending'; value.reason = 'interrupted'; this.progress.delete(key);
         const exhausted = this.exhausted(value); await this.put(key, value);
         if (exhausted) return value;
+      }
+      // Old pending rows may contain a resolvedPath chosen from live per-drive
+      // state. It cannot make an otherwise unverifiable historical source safe.
+      if (!historicalPathAvailable(value.source.path, value.source.cwd)) {
+        value.state = 'failed'; value.reason = 'historical_working_directory_unavailable';
+        this.progress.delete(key); await this.put(key, value); return value;
       }
       let computation = this.progress.get(key);
       if (this.exhausted(value, !computation)) { await this.put(key, value); return value; }

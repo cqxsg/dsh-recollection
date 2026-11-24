@@ -42,6 +42,7 @@ export { HashComputation, hashCurrent, HASH_CHUNK_BYTES, HASH_SLICE_MS } from '.
 export { RecallHashLedger, hashRecord, hashLedgerSpec, hashKey, hashSource, type HashRecord, type HashSource } from './host/attachments/hash-ledger.js';
 export { RecallAttachmentService, nativeHashSources, recordHashSource } from './host/attachments/attachment-service.js';
 export { historicalDirectory, toolDirectory } from './host/attachments/historical-directory.js';
+export { fullyQualifiedWindowsPath, historicalPathAvailable } from './host/attachments/historical-path.js';
 export { RecallToolsService, SEARCH_DESCRIPTION, READ_DESCRIPTION, RECALL_USAGE } from './host/tools.js';
 export { indexHistoryRecords, fingerprintHistory } from './host/history/records.js';
 export { currentInteraction, resolveCallIdentity } from './host/runtime/identity.js';

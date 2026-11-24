@@ -1,9 +1,9 @@
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session';
-import { absoluteFilePath } from './attachments.js';
+import { fullyQualifiedWindowsPath } from './historical-path.js';
 
 interface DirectoryPoint { seq: number; cwd: string | undefined; }
 const timelines = new WeakMap<readonly SessionEvent[], readonly DirectoryPoint[]>();
-const directory = (value: unknown): string | undefined => typeof value === 'string' && !value.includes('\0') && absoluteFilePath(value) ? value : undefined;
+const directory = (value: unknown): string | undefined => typeof value === 'string' && fullyQualifiedWindowsPath(value) ? value : undefined;
 
 /** A bounded index owned by the immutable event array; never asks the live directory service. */
 export function historicalDirectory(header: SessionHeader, events: readonly SessionEvent[], seq: number, inherited = 0): string | undefined {

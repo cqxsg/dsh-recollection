@@ -6,6 +6,7 @@ import { hasSpillNotice } from '@deepseek-ai/dsh-spill-policy/notice';
 import { posix, win32 } from 'node:path';
 import type { CanonicalRecord } from '../history/records.js';
 import type { AttachmentItem } from '../protocol.js';
+import { historicalPathAvailable } from './historical-path.js';
 
 export interface AttachmentSource {
   selector: string;
@@ -98,7 +99,7 @@ export async function accessAttachment(ctx: Context, source: AttachmentSource, c
       path = source.path && fs.processPathFromHostPath(source.path);
       if (!path) return { state: 'unreachable', reason: 'no_execution_path_mapping' };
     }
-    if (!path || path.includes('\0') || (!absoluteFilePath(path) && !cwd)) return { state: 'unresolved', reason: 'historical_working_directory_unavailable' };
+    if (!path || !historicalPathAvailable(path, cwd)) return { state: 'unresolved', reason: 'historical_working_directory_unavailable' };
     const target = await fs.resolve(path, { ...(cwd ? { cwd } : {}), signal });
     const info = await fs.stat(target, signal);
     if (!info) return { state: 'missing', reason: 'file_not_found' };

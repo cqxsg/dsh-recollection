@@ -1,6 +1,6 @@
 {
   "name": "dsh-recollection",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "Apache-2.0",
   "description": "Autonomous conversation recall plugin for DeepSeek Harness",
   "repository": {
@@ -129,7 +129,8 @@
     "test:runtime-capabilities": "npm run build && node test/runners/test-runtime-capabilities.mjs",
     "test:reference-recovery": "npm run build && node test/runners/test-reference-recovery.mjs",
     "test:recall:command": "npm run build && node test/runners/test-recall-command.mjs && node test/runners/test-recall-command-recovery.mjs",
-    "test:recall:command:browser": "npm run build && node test/runners/web.mjs --recall-command-browser"
+    "test:recall:command:browser": "npm run build && node test/runners/web.mjs --recall-command-browser",
+    "test:windows-paths": "npm run build && node test/runners/test-repairs.mjs --cases=B01,B02"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.5 <=4.1.0 || 4.0.6-alpha.2",
