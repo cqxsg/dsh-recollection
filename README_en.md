@@ -91,7 +91,7 @@ The accompanying dataset includes complete conversation histories, compaction re
 
 ### Recall effectiveness
 
-The evaluation dataset currently contains 10 test cases, each with 6 rubric items tailored to its history, primarily covering these four dimensions:
+The evaluation dataset currently contains 30 test cases, each with 6 rubric items tailored to its history, primarily covering these four dimensions:
 
 | Evaluation dimension | What is assessed |
 |---|---|
@@ -102,12 +102,23 @@ The evaluation dataset currently contains 10 test cases, each with 6 rubric item
 
 | Assessment result | Recall disabled | Recall enabled |
 |---|---:|---:|
-| Fully satisfied | 16.7% (10/60) | 88.3% (53/60) |
-| Partially satisfied | 53.3% (32/60) | 10.0% (6/60) |
-| Missing | 15.0% (9/60) | 0.0% (0/60) |
-| Contradicts the history | 15.0% (9/60) | 1.7% (1/60) |
+| Fully satisfied | 27.8% (50/180) | 83.9% (151/180) |
+| Partially satisfied | 30.0% (54/180) | 8.9% (16/180) |
+| Missing | 3.3% (6/180) | 0.0% (0/180) |
+| Contradicts the history | 38.9% (70/180) | 7.2% (13/180) |
 
-With recall enabled, **90% of test cases used recall tools**. The mean number of calls per case was **3.8** for `recall_search` and **2.2** for `recall_read`.
+With recall enabled, **93.3% of test cases used recall tools**. The mean number of calls per case was **5.2** for `recall_search` and **4.0** for `recall_read`.
+
+### Token consumption
+
+| Mean per case | Recall disabled | Recall enabled | Change |
+|---|---:|---:|---:|
+| Input tokens (cache hit) | 812,420.27 | 812,010.67 | −409.60 (−0.05%) |
+| Input tokens (cache miss) | 53,530.57 | 69,327.77 | +15,797.20 (+29.51%) |
+| Output tokens | 14,143.53 | 9,517.60 | −4,625.93 (−32.71%) |
+| Terminal calls | 13.77 | 2.07 | −11.70 (−84.99%) |
+
+With recall enabled, the model retrieves relevant evidence from historical records, reducing the need to inspect code and rerun experiments. Terminal calls decrease substantially.
 
 ### Performance
 
