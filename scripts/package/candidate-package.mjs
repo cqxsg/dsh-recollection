@@ -40,7 +40,7 @@ export async function verifyPackage(root, expectedPackage, forbiddenPaths = [], 
   assert.deepEqual(pkg.repository, { type: 'git', url: 'git+https://github.com/cqxsg/dsh-recollection.git' });
   assert.deepEqual(pkg.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' }, 'Unexpected publish destination');
   assert.deepEqual(pkg.os, ['win32']); assert.deepEqual(pkg.cpu, ['x64']);
-  assert.equal(pkg.engines.node, '>=24.14.0');
+  assert.equal(pkg.engines.node, '>=22.19.0');
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) assert.equal(pkg.scripts[hook], undefined);
   const entries = [pkg.main, pkg.types, pkg.dsh.bundle.patch];
   const visit = value => typeof value === 'string' ? entries.push(value) : Object.values(value).forEach(visit);

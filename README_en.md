@@ -147,8 +147,8 @@ The test uses synthetic records with an average text body of approximately 2 KB.
 ## Notes
 
 - **DSH compatibility** — Supports `0.2.x` versions starting from `0.2.1-rc.1`.
-- **Validated versions** — npm / Web validated from `0.2.1-rc.4` through `0.2.2-rc.3`; Desktop validated with `0.2.2-rc.3`. Validation of `0.2.2-alpha.2` was blocked by a host agent preset defect. Other versions have not been individually validated.
-- **Node.js** — Requires `24.14.0` or later; validated with `24.14.0`.
+- **Validated versions** — npm / Web validated with `0.2.1-rc.1`, from `0.2.1-rc.4` through `0.2.2-rc.3`, and with `0.2.2-rc.5`; Desktop validated with `0.2.2-rc.3`. Validation of `0.2.2-alpha.2` was blocked by a host agent preset defect. Other versions have not been individually validated.
+- **Node.js** — Requires `22.19.0` or later. Validated with `22.19.0`, `24.9.0`, `24.14.0`, and `24.21.0`.
 - **Platform** — Windows x64.
 - **Recall scope** — Recall currently covers the current session. Cross-session recall is planned.
 - **Spill file retention** — DSH stores oversized tool outputs in spill files. To preserve complete outputs for later recall, `dsh-recollection` configures DSH by default to store new spill files in the `spills` directory under the DSH data directory and disable automatic cleanup. This does not move existing spill files or restore files that have already been lost.

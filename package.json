@@ -1,6 +1,6 @@
 {
   "name": "dsh-recollection",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "license": "Apache-2.0",
   "description": "Autonomous conversation recall plugin for DeepSeek Harness",
   "repository": {
@@ -56,7 +56,7 @@
     "lib/typert.remote-client.d.ts.map"
   ],
   "engines": {
-    "node": ">=24.14.0",
+    "node": ">=22.19.0",
     "dsh": ">=0.2.1-rc.1 <0.2.2-0 || >=0.2.2-alpha.3 <0.3.0-0"
   },
   "dsh": {
